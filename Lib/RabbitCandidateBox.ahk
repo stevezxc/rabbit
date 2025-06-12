@@ -37,7 +37,7 @@ class CandidateBox extends Gui {
         this.pre := this.AddText(, "p")
         this.pre.GetPos(, , , &h)
         this.preedit_height := h
-        this.lv := this.AddListView("-Multi -Hdr -E0x200 LV0x40", ["i", "c", "m"])
+        this.lv := this.AddListView("-Multi -Hdr -E0x200 LV0x10000", ["i", "c", "m"])
         DllCall("uxtheme\SetWindowTheme", "ptr", this.lv.hwnd, "WStr", "Explorer", "Ptr", 0)
 
         this.dummy_lv1 := this.AddListView("-Multi -Hdr -E0x200 LV0x40 Hidden R1", ["p"])
