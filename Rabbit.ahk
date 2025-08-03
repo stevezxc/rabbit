@@ -135,7 +135,6 @@ ExitRabbit(layout, reason, code) {
     if code == 0
         SetDefaultKeyboard(layout)
     TrayTip()
-    ToolTip()
     ToolTip(, , , STATUS_TOOLTIP)
     if session_id {
         rime.destroy_session(session_id)
@@ -352,7 +351,6 @@ ProcessKey(key, mask, this_hotkey) {
         else
             last_is_hide := false
         SendText(commit.text)
-        ; ToolTip()
         box.Show("Hide")
         rime.free_commit(commit)
     } else
@@ -416,11 +414,6 @@ ProcessKey(key, mask, this_hotkey) {
                 prev_x := new_x
                 prev_y := new_y
             } else if !show_at_left_top {
-                ; has_selected := GetCompositionText(context.composition, &pre_selected, &selected, &post_selected)
-                ; preedit_text := pre_selected
-                ; if has_selected
-                ;     preedit_text := preedit_text . "[" . selected "]" . post_selected
-                ; ToolTip(preedit_text . "`r`n" . GetMenuText(context.menu))
                 backup_mouse_ref := A_CoordModeMouse
                 CoordMode("Mouse", "Screen")
                 MouseGetPos(&mouse_x, &mouse_y)
@@ -430,7 +423,6 @@ ProcessKey(key, mask, this_hotkey) {
             }
             prev_show := true
         } else {
-            ; ToolTip()
             box.Show("Hide")
             prev_show := false
         }
