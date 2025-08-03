@@ -28,6 +28,8 @@
 #Include <RabbitCaret>
 #Include <RabbitTrayMenu>
 #Include <RabbitMonitors>
+#Include <RabbitUIStyle>
+#Include <RabbitConfig>
 
 global IN_MAINTENANCE := false
 global session_id := 0
@@ -115,7 +117,10 @@ RabbitMain(args) {
                 UpdateTrayIcon()
     }
     SetupTrayMenu()
+    box.UpdateUIStyle()
     OnMessage(AHK_NOTIFYICON, ClickHandler.Bind())
+    OnMessage(WM_SETTINGCHANGE, OnColorChange.Bind())
+    OnMessage(WM_DWMCOLORIZATIONCOLORCHANGED, OnColorChange.Bind())
     if !RabbitConfig.global_ascii
         SetTimer(UpdateWinAscii)
 

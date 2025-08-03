@@ -17,6 +17,7 @@
  */
 
 #Include <RabbitCommon>
+#Include <RabbitConfig>
 
 A_IconTip := "玉兔毫"
 

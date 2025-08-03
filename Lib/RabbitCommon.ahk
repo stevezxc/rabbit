@@ -33,6 +33,8 @@ global RABBIT_VERSION := "dev"
 global AHK_NOTIFYICON := 0x404
 global WM_LBUTTONDOWN := 0x201
 global WM_LBUTTONUP := 0x202
+global WM_SETTINGCHANGE := 0x001A
+global WM_DWMCOLORIZATIONCOLORCHANGED := 0x0320
 
 global rime := RimeApi(A_ScriptDir . "\Lib\librime-ahk\rime.dll")
 global RABBIT_IME_NAME := "玉兔毫"
@@ -44,6 +46,7 @@ global RABBIT_FULL_MAINTENANCE := "2"
 global IN_MAINTENANCE := false
 global STATUS_TOOLTIP := 2
 global box := 0
+global IS_DARK_MODE := false
 global ASCII_MODE_FALSE_LABEL := "中文"
 global ASCII_MODE_TRUE_LABEL := "西文"
 global ASCII_MODE_FALSE_LABEL_ABBR := "中"
@@ -140,71 +143,6 @@ OnRimeMessage(context_object, session_id, message_type, message_value) {
         }
     } else {
         ; TrayTip(msg_type . ": " . msg_value . " (" . session_id . ")", RABBIT_IME_NAME)
-    }
-}
-
-class RabbitConfig {
-    static suspend_hotkey := ""
-    static show_tips := true
-    static show_tips_time := 1200
-    static global_ascii := false
-    static preset_process_ascii := Map()
-    static schema_icon := Map()
-    static fix_candidate_box := false
-
-    static load() {
-        global rime
-        if !rime || !config := rime.config_open("rabbit")
-            return
-
-        RabbitConfig.suspend_hotkey := rime.config_get_string(config, "suspend_hotkey")
-        if rime.config_test_get_bool(config, "show_tips", &result)
-            RabbitConfig.show_tips := !!result
-        if rime.config_test_get_int(config, "show_tips_time", &result) {
-            RabbitConfig.show_tips_time := Abs(result)
-            if result == 0
-                RabbitConfig.show_tips := false
-        }
-
-        if rime.config_test_get_bool(config, "global_ascii", &result)
-            RabbitConfig.global_ascii := !!result
-
-        if iter := rime.config_begin_map(config, "app_options") {
-            while rime.config_next(iter) {
-                proc_name := StrLower(iter.key)
-                if rime.config_test_get_bool(config, "app_options/" . proc_name . "/ascii_mode", &result) {
-                    RabbitConfig.preset_process_ascii[proc_name] := !!result
-                    RabbitGlobals.process_ascii[proc_name] := !!result
-                }
-            }
-            rime.config_end(iter)
-        }
-
-        if rime.config_test_get_bool(config, "fix_candidate_box", &result)
-            RabbitConfig.fix_candidate_box := !!result
-
-        rime.config_close(config)
-
-        if !schema_list := rime.get_schema_list()
-            return
-
-        Loop schema_list.size {
-            local item := schema_list.list[A_Index]
-            if !schema := rime.schema_open(item.schema_id)
-                continue
-
-            if rime.config_test_get_string(schema, "schema/icon", &icon) {
-                icon_path := RabbitUserDataPath() . "\" . LTrim(icon, "\")
-                if !FileExist(icon_path)
-                    icon_path := RabbitSharedDataPath() . "\" . LTrim(icon, "\")
-                RabbitConfig.schema_icon[item.schema_id] := FileExist(icon_path) ? icon_path : ""
-            } else
-                RabbitConfig.schema_icon[item.schema_id] := ""
-
-            rime.config_close(schema)
-        }
-
-        rime.free_schema_list(schema_list)
     }
 }
 

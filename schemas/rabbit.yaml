@@ -23,3 +23,19 @@ global_ascii: false
 
 # Always show candidate box at top-left corner
 fix_candidate_box: false
+
+style:
+  color_scheme: light
+  color_scheme_dark: dark
+
+preset_color_schemes:
+  light:
+    name: 亮色
+    author: Xuesong Peng <pengxuesong.cn@gmail.com>
+    text_color: 0x000000
+    back_color: 0xeceeee
+  dark:
+    name: 暗色
+    author: Xuesong Peng <pengxuesong.cn@gmail.com>
+    text_color: 0xffffff
+    back_color: 0x1e1e1e

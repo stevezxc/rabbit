@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, 2024 Xuesong Peng <pengxuesong.cn@gmail.com>
+ * Copyright (c) 2023 - 2025 Xuesong Peng <pengxuesong.cn@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -48,6 +48,23 @@ class CandidateBox extends Gui {
         this.dummy_lv2.GetPos(, , , &dh2)
         this.row_height := dh2 - dh1
         this.row_padding := dh1 - this.row_height
+    }
+
+    UpdateUIStyle() {
+        global IS_DARK_MODE
+        local back_color_val := UIStyle.back_color & 0xffffff ; alpha not supported
+        local text_color := Format("c{:x}", UIStyle.text_color & 0xffffff)
+        this.BackColor := back_color_val
+        this.pre.SetFont("S12 " . text_color, "Microsoft YaHei UI")
+        this.SetFont("S12 " . text_color, "Microsoft YaHei UI")
+        this.lv.Opt(Format("{} Background0x{:x}", text_color, back_color_val))
+        if IS_DARK_MODE {
+            DllCall("uxtheme\SetWindowTheme", "ptr", this.lv.hwnd, "WStr", "DarkMode_Explorer", "ptr", 0)
+            DllCall("uxtheme\SetWindowTheme", "ptr", this.lv.hwnd, "WStr", "DarkMode_ItemsView", "ptr", 0)
+        } else {
+            DllCall("uxtheme\SetWindowTheme", "ptr", this.lv.hwnd, "WStr", "Explorer", "Ptr", 0)
+            DllCall("uxtheme\SetWindowTheme", "ptr", this.lv.hwnd, "WStr", "ItemsView", "Ptr", 0)
+        }
     }
 
     Build(context, &width, &height) {
