@@ -29,7 +29,7 @@ class CandidateBox extends Gui {
 
     __New() {
         super.__New(, , this)
-        this.Opt("-Caption +Owner AlwaysOnTop " . WS_EX_NOACTIVATE)
+        this.Opt("-DPIScale -Caption +Owner AlwaysOnTop " . WS_EX_NOACTIVATE)
         this.MarginX := 3
         this.MarginY := 3
         this.BackColor := 0x191919
