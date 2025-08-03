@@ -54,10 +54,13 @@ class CandidateBox extends Gui {
         global IS_DARK_MODE
         local back_color_val := UIStyle.back_color & 0xffffff ; alpha not supported
         local text_color := Format("c{:x}", UIStyle.text_color & 0xffffff)
+        local font_point := Format("S{:d}", UIStyle.font_point)
+        local font_face := UIStyle.font_face
         this.BackColor := back_color_val
-        this.pre.SetFont("S12 " . text_color, "Microsoft YaHei UI")
-        this.SetFont("S12 " . text_color, "Microsoft YaHei UI")
+        this.pre.SetFont(Format("{} {}", font_point, text_color), font_face)
+        this.pre.SetFont(Format("{} {}", font_point, text_color), font_face)
         this.lv.Opt(Format("{} Background0x{:x}", text_color, back_color_val))
+
         if IS_DARK_MODE {
             DllCall("uxtheme\SetWindowTheme", "ptr", this.lv.hwnd, "WStr", "DarkMode_Explorer", "ptr", 0)
             DllCall("uxtheme\SetWindowTheme", "ptr", this.lv.hwnd, "WStr", "DarkMode_ItemsView", "ptr", 0)

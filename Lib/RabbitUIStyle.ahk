@@ -21,9 +21,19 @@
 class UIStyle {
     static text_color := 0xff000000
     static back_color := 0xffeceeee
+    static font_face := "Microsoft YaHei UI"
+    static font_point := 12
 
     static Update(config, initialize) {
         global rime
+        if !rime || !config
+            return
+        UIStyle.font_face := rime.config_get_string(config, "style/font_face")
+        if not UIStyle.font_face
+            UIStyle.font_face := "Microsoft YaHei UI"
+        UIStyle.font_point := rime.config_get_int(config, "style/font_point")
+        if UIStyle.font_point <= 0
+            UIStyle.font_point := 12
         if initialize and color := rime.config_get_string(config, "style/color_scheme")
             UIStyle.UpdateColor(config, color)
     }
