@@ -62,7 +62,7 @@ class RabbitConfig {
         UIStyle.Update(config, true)
         if IS_DARK_MODE := RabbitIsUserDarkMode() {
             if color_name := rime.config_get_string(config, "style/color_scheme_dark")
-                UIStyle.UpdateColor(config, color_name)
+                UIStyle.use_dark := UIStyle.UpdateColor(config, color_name)
         }
 
         rime.config_close(config)

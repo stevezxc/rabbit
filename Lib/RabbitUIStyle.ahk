@@ -19,6 +19,7 @@
 #Include <RabbitCommon>
 
 class UIStyle {
+    static use_dark := false
     static text_color := 0xff000000
     static back_color := 0xffeceeee
     static font_face := "Microsoft YaHei UI"
@@ -28,6 +29,7 @@ class UIStyle {
         global rime
         if !rime || !config
             return
+        UIStyle.use_dark := false
         UIStyle.font_face := rime.config_get_string(config, "style/font_face")
         if not UIStyle.font_face
             UIStyle.font_face := "Microsoft YaHei UI"
@@ -58,7 +60,7 @@ class UIStyle {
 
     static GetColor(config, key, fmt, fallback) {
         global rime
-        if not color := rime.config_get_string(config, key)
+        if not rime.config_test_get_string(config, key, &color)
             return fallback
 
         local val := fallback
@@ -135,7 +137,7 @@ OnColorChange(wParam, lParam, msg, hWnd) {
             UIStyle.Update(config, true)
             if IS_DARK_MODE {
                 if color_name := rime.config_get_string(config, "style/color_scheme_dark")
-                    UIStyle.UpdateColor(config, color_name)
+                    UIStyle.use_dark := UIStyle.UpdateColor(config, color_name)
             }
 
             rime.config_close(config)
