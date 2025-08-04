@@ -33,7 +33,6 @@
 
 global IN_MAINTENANCE := false
 global session_id := 0
-global box := CandidateBox()
 global mutex := RabbitMutex()
 global last_is_hide := false
 
@@ -43,6 +42,7 @@ RabbitMain(A_Args)
 ; args[2]: deployer result
 ; args[3]: keyboard layout
 RabbitMain(args) {
+    global box
     if args.Length >= 3
         layout := Number(args[3])
     if !IsSet(layout) || layout == 0 {
@@ -100,6 +100,7 @@ RabbitMain(args) {
 
     CleanOldLogs()
     RabbitConfig.load()
+    box := CandidateBox()
     RegisterHotKeys()
     UpdateStateLabels()
     if status := rime.get_status(session_id) {

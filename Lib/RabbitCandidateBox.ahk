@@ -29,11 +29,15 @@ class CandidateBox extends Gui {
 
     __New() {
         super.__New(, , this)
+        local back_color_val := UIStyle.back_color & 0xffffff
+        local text_color := Format("c{:x}", UIStyle.text_color & 0xffffff)
+        local font_point := Format("S{:d}", UIStyle.font_point)
+        local font_face := UIStyle.font_face
         this.Opt("-DPIScale -Caption +Owner AlwaysOnTop " . WS_EX_NOACTIVATE)
         this.MarginX := 3
         this.MarginY := 3
-        this.BackColor := 0x191919
-        this.SetFont("S12 cWhite", "Microsoft YaHei UI")
+        this.BackColor := back_color_val
+        this.SetFont(Format("{} {}", font_point, text_color), font_face)
 
         this.pre := this.AddText(, "p")
         this.pre.GetPos(, , , &h)
@@ -56,7 +60,7 @@ class CandidateBox extends Gui {
         local font_point := Format("S{:d}", UIStyle.font_point)
         local font_face := UIStyle.font_face
         this.BackColor := back_color_val
-        this.pre.SetFont(Format("{} {}", font_point, text_color), font_face)
+        this.SetFont(Format("{} {}", font_point, text_color), font_face)
         this.pre.SetFont(Format("{} {}", font_point, text_color), font_face)
         this.lv.Opt(Format("{} Background0x{:x}", text_color, back_color_val))
 

@@ -26,7 +26,7 @@ fix_candidate_box: false
 
 style:
   color_scheme: aqua
-  font_point: 12                                  # FIXME: preedit box cannot resize
+  font_point: 12
 
 # Copied from weasel.yaml
 # Current supported fields
