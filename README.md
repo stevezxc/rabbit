@@ -2,17 +2,18 @@
 
 由 [AutoHotkey](https://www.autohotkey.com/) 实现的 [Rime 输入法引擎](https://github.com/rime/librime)前端
 
+[![Download](https://img.shields.io/github/v/release/rimeinn/rabbit)](https://github.com/rimeinn/rabbit/releases/latest)
+[![Build Status](https://github.com/rimeinn/rabbit/actions/workflows/ci.yaml/badge.svg)](https://github.com/rimeinn/rabbit/actions/workflows/ci.yaml)
+[![Telegram Group Chat](https://telegram-badge.vercel.app/api/telegram-badge?channelId=@rime_rabbit)](https://t.me/rime_rabbit)
+[![License](https://img.shields.io/github/license/rimeinn/rabbit)](LICENSE)
+![GitHub Repo stars](https://img.shields.io/github/stars/rimeinn/rabbit?style=flat)
+
 ## 下载体验
 
 > [!NOTE]
-> ⚠️正在施工
-> 现在已经可轻量地使用，遇到问题可以在 [Issues](https://github.com/rimeinn/rabbit/issues/new/choose) 反馈。
-
-### Action 版
-
-需要先登录你的 GitHub 账号。
-
-前往 [Actions 页面](https://github.com/rimeinn/rabbit/actions) 找到最近成功构建的一次，在生成的 Artifacts 中点击 `Rabbit-Full` 下载，将压缩包内容解压到一个新建目录中，运行 `Rabbit.exe` 即可。之后更新时，可只下载 `Rabbit` 或 `Data` 覆盖相应的文件。
+> 发现程序漏洞请在 [Issues](https://github.com/rimeinn/rabbit/issues/new/choose) 反馈。
+> 使用问题可以在 [Discussions](https://github.com/rimeinn/rabbit/discussions) 讨论，
+> 或者加入 [Telegram 群聊](https://t.me/rime_rabbit)。
 
 ### Release 版
 
@@ -24,6 +25,12 @@
 scoop bucket add siku https://github.com/amorphobia/siku
 scoop install siku/rabbit
 ```
+
+### Action 版
+
+需要先登录你的 GitHub 账号。
+
+前往 [Actions 页面](https://github.com/rimeinn/rabbit/actions) 找到最近成功构建的一次，在生成的 Artifacts 中点击 `Rabbit-Full` 下载，将压缩包内容解压到一个新建目录中，运行 `Rabbit.exe` 即可。之后更新时，可只下载 `Rabbit` 或 `Data` 覆盖相应的文件。
 
 ## 脚本编译
 
@@ -54,10 +61,6 @@ rabbit/
 ├─ rime-install.bat     东风破批处理脚本，删除后无法从设定中调用东风破
 ```
 
-## 开源许可
-
-[GPL-3.0](LICENSE)
-
 ## 使用的开源项目
 
 - [librime](https://github.com/rime/librime)
@@ -72,9 +75,7 @@ rabbit/
 ## 已知问题
 
 - 候选框图形界面较为简陋，有闪烁等问题
-- ~~某些情况无法获得输入光标的坐标~~已在 x64 版本中修复，使用 x86 版本某些在应用中依旧无法获取光标的坐标 (Tebayaki/AutoHotkeyScripts#4)
-- 因热键冲突而取消了一些按键注册
-- 与某些软件适配较差
+- 某些情况无法获得输入光标的坐标
 - 桌面版 QQ 的密码输入框无法使用：[QQ密码输入框（防键盘钩子）原理分析](https://blog.csdn.net/muyedongfeng/article/details/49308993)，
 （[页面存档备份](https://web.archive.org/web/20240907052640/https://blog.csdn.net/muyedongfeng/article/details/49308993)，存于互联网档案馆），可右键点击任务栏图标选择禁用/启用玉兔毫，或是在 `rabbit.custom.yaml` 里设置 `suspend_hotkey` 指定快捷键来禁用/启用玉兔毫
 - 在 Windows 7 中打开玉兔毫时可能会造成系统一段时间无响应，需等待初始化完成，原因未知
