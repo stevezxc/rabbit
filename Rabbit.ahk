@@ -42,7 +42,7 @@ RabbitMain(A_Args)
 ; args[2]: deployer result
 ; args[3]: keyboard layout
 RabbitMain(args) {
-    global box
+    global box, rabbit_traits
     if args.Length >= 3
         layout := Number(args[3])
     if !IsSet(layout) || layout == 0 {

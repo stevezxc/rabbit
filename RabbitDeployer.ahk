@@ -117,6 +117,7 @@ class Configurator extends Class {
     }
 
     Initialize() {
+        global rabbit_traits
         rabbit_traits := CreateTraits()
         rime.setup(rabbit_traits)
         rime.deployer_initialize(0)
