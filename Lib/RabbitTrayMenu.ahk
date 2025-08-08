@@ -84,9 +84,8 @@ RunDeployer(cmd, argv*) {
 
 ToggleSuspend() {
     global rime, session_id, box, STATUS_TOOLTIP
-    ToolTip()
-    if box
-        box.Show("Hide")
+    if box && HasMethod(box, "Hide")
+        box.Hide()
     rime.clear_composition(session_id)
     Suspend(-1)
     UpdateTrayTip()

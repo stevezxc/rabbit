@@ -357,7 +357,7 @@ ProcessKey(key, mask, this_hotkey) {
         else
             last_is_hide := false
         SendText(commit.text)
-        box.Show("Hide")
+        box.Hide()
         rime.free_commit(commit)
     } else
         last_is_hide := false
@@ -386,7 +386,7 @@ ProcessKey(key, mask, this_hotkey) {
                 show_at_left_top := !!info
                 if show_at_left_top && !last_is_hide {
                     box.Build(context, &box_width, &box_height)
-                    box.Show("AutoSize NA x" . info.work.left + 4 . " y" . info.work.top + 4)
+                    box.Show(info.work.left + 4, info.work.top + 4)
                 }
             }
             if !show_at_left_top && GetCaretPos(&caret_x, &caret_y, &caret_w, &caret_h) {
@@ -416,7 +416,7 @@ ProcessKey(key, mask, this_hotkey) {
                     }
                 }
                 if !last_is_hide
-                    box.Show("AutoSize NA x" . new_x . " y" . new_y)
+                    box.Show(new_x, new_y)
                 prev_x := new_x
                 prev_y := new_y
             } else if !show_at_left_top {
@@ -425,11 +425,11 @@ ProcessKey(key, mask, this_hotkey) {
                 MouseGetPos(&mouse_x, &mouse_y)
                 CoordMode("Mouse", backup_mouse_ref)
                 box.Build(context, &box_width, &box_height)
-                box.Show("AutoSize NA x" . mouse_x . " y" . mouse_y)
+                box.Show(mouse_x, mouse_y)
             }
             prev_show := true
         } else {
-            box.Show("Hide")
+            box.Hide()
             prev_show := false
         }
         rime.free_context(context)

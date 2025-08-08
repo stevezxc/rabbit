@@ -16,112 +16,278 @@
  *
  */
 
+#Include <RabbitUIStyle>
+
 global LVM_GETCOLUMNWIDTH := 0x101D
 ; https://learn.microsoft.com/windows/win32/winmsg/extended-window-styles
 global WS_EX_NOACTIVATE := "+E0x8000000"
+global WS_EX_COMPOSITED := "+E0x02000000"
+global WS_EX_LAYERED    := "+E0x00080000"
 
-class CandidateBox extends Gui {
-    static min_width := 150
-    static idx_col := 1
-    static cand_col := 2
-    static comment_col := 3
-    static num_col := 3
+class CandidateBox {
+    static dbg := false
+    static gui := 0
+    static back_color := 0xeeeeec
+    static text_color := 0x000000
+    static font_face  := "Microsoft YaHei UI"
+    static font_point := 12
+    static comment_text_color := 0x222222
+    static hilited_back_color := 0x000000
+    static hilited_text_color := 0xffffff
+    static hilited_candidate_text_color := 0xffffff
+    static hilited_candidate_back_color := 0x000000
+    static hilited_comment_text_color   := 0x222222
+    static margin_x   := 5
+    static margin_y   := 5
+    static min_width  := 150
+    static border     := CandidateBox.dbg ? "+border" : 0
 
     __New() {
-        super.__New(, , this)
-        local back_color_val := UIStyle.back_color & 0xffffff
-        local text_color := Format("c{:x}", UIStyle.text_color & 0xffffff)
-        local font_point := Format("S{:d}", UIStyle.font_point)
-        local font_face := UIStyle.font_face
-        this.Opt("-DPIScale -Caption +Owner AlwaysOnTop " . WS_EX_NOACTIVATE)
-        this.MarginX := 3
-        this.MarginY := 3
-        this.BackColor := back_color_val
-        this.SetFont(Format("{} {}", font_point, text_color), font_face)
-
-        this.pre := this.AddText(, "p")
-        this.pre.GetPos(, , , &h)
-        this.preedit_height := h
-        this.lv := this.AddListView("-Multi -Hdr -E0x200 LV0x10000 cWhite Background0x191919", ["i", "c", "m"])
-        DllCall("uxtheme\SetWindowTheme", "ptr", this.lv.hwnd, "WStr", "DarkMode_Explorer", "Ptr", 0)
-        DllCall("uxtheme\SetWindowTheme", "ptr", this.lv.hwnd, "WStr", "DarkMode_ItemsView", "ptr", 0)
-
-        this.dummy_lv1 := this.AddListView("-Multi -Hdr -E0x200 LV0x40 Hidden R1", ["p"])
-        this.dummy_lv2 := this.AddListView("-Multi -Hdr -E0x200 LV0x40 Hidden R2", ["p"])
-        this.dummy_lv1.GetPos(, , , &dh1)
-        this.dummy_lv2.GetPos(, , , &dh2)
-        this.row_height := dh2 - dh1
-        this.row_padding := dh1 - this.row_height
+        this.UpdateUIStyle()
     }
 
     UpdateUIStyle() {
-        local back_color_val := UIStyle.back_color & 0xffffff ; alpha not supported
-        local text_color := Format("c{:x}", UIStyle.text_color & 0xffffff)
-        local font_point := Format("S{:d}", UIStyle.font_point)
-        local font_face := UIStyle.font_face
-        this.BackColor := back_color_val
-        this.SetFont(Format("{} {}", font_point, text_color), font_face)
-        this.pre.SetFont(Format("{} {}", font_point, text_color), font_face)
-        this.lv.Opt(Format("{} Background0x{:x}", text_color, back_color_val))
-
-        if UIStyle.use_dark {
-            DllCall("uxtheme\SetWindowTheme", "ptr", this.lv.hwnd, "WStr", "DarkMode_Explorer", "ptr", 0)
-            DllCall("uxtheme\SetWindowTheme", "ptr", this.lv.hwnd, "WStr", "DarkMode_ItemsView", "ptr", 0)
-        } else {
-            DllCall("uxtheme\SetWindowTheme", "ptr", this.lv.hwnd, "WStr", "Explorer", "Ptr", 0)
-            DllCall("uxtheme\SetWindowTheme", "ptr", this.lv.hwnd, "WStr", "ItemsView", "Ptr", 0)
+        ; alpha not supported
+        del_opaque(color) {
+            return color & 0xffffff
         }
+        CandidateBox.back_color := del_opaque(UIStyle.back_color)
+        CandidateBox.text_color := del_opaque(UIStyle.text_color)
+        if UIStyle.font_face
+            CandidateBox.font_face := UIStyle.font_face
+        CandidateBox.font_point := UIStyle.font_point
+        CandidateBox.comment_text_color := del_opaque(UIStyle.comment_text_color)
+        CandidateBox.hilited_back_color := del_opaque(UIStyle.hilited_back_color)
+        CandidateBox.hilited_text_color := del_opaque(UIStyle.hilited_text_color)
+        CandidateBox.hilited_candidate_back_color := del_opaque(UIStyle.hilited_candidate_back_color)
+        CandidateBox.hilited_candidate_text_color := del_opaque(UIStyle.hilited_candidate_text_color)
+        CandidateBox.hilited_comment_text_color := del_opaque(UIStyle.hilited_comment_text_color)
+        CandidateBox.margin_x := UIStyle.margin_x
+        CandidateBox.margin_y := UIStyle.margin_y
     }
 
     Build(context, &width, &height) {
-        local has_selected := GetCompositionText(context.composition, &pre_selected, &selected, &post_selected)
         local cands := context.menu.candidates
-        local lv_height := this.row_height * context.menu.num_candidates + this.row_padding
+        GetCompositionText(context.composition, &pre_selected, &selected, &post_selected)
+        if !CandidateBox.gui || !CandidateBox.gui.built {
+            CandidateBox.gui := CandidateBox.BoxGui(
+                pre_selected,
+                selected,
+                post_selected,
+                cands,
+                context.menu.num_candidates,
+                context.menu.highlighted_candidate_index + 1
+            )
+        } else {
+            CandidateBox.gui.Update(
+                pre_selected,
+                selected,
+                post_selected,
+                cands,
+                context.menu.num_candidates,
+                context.menu.highlighted_candidate_index + 1
+            )
+        }
+        CandidateBox.gui.GetPos(, , &width, &height)
+    }
 
-        preedit_text := pre_selected
-        if has_selected
-            preedit_text := preedit_text . "[" . selected "]" . post_selected
+    Show(x, y) {
+        CandidateBox.gui.Show(Format("AutoSize NA x{} y{}", x, y))
+    }
 
-        this.pre.Value := preedit_text
-        this.dummy_lv1.Delete()
-        this.dummy_lv1.Add(, preedit_text)
-        this.dummy_lv1.ModifyCol()
-        preedit_width := SendMessage(LVM_GETCOLUMNWIDTH, 0, 0, this.dummy_lv1)
+    Hide() {
+        if CandidateBox.gui && HasMethod(CandidateBox.gui, "Show")
+            CandidateBox.gui.Show("Hide")
+    }
 
-        this.lv.Delete()
-        has_comment := false
-        Loop context.menu.num_candidates {
-            opt := (A_Index == context.menu.highlighted_candidate_index + 1) ? "Select" : ""
-            if comment := cands[A_Index].comment
-                has_comment := true
-            this.lv.Add(opt, A_Index . ". ", cands[A_Index].text, comment)
+    class BoxGui extends Gui {
+        built := false
+        __New(pre, sel, post, cands, num_candidates, hilited_index) {
+            super.__New(, , this)
+            this.Opt(Format("-DPIScale -Caption +Owner +AlwaysOnTop {} {} {}", WS_EX_NOACTIVATE, WS_EX_COMPOSITED, WS_EX_LAYERED))
+            this.BackColor := CandidateBox.back_color
+            this.SetFont(Format("s{} c{:x}", CandidateBox.font_point, CandidateBox.text_color), CandidateBox.font_face)
+            this.MarginX := CandidateBox.margin_x
+            this.MarginY := CandidateBox.margin_y
+            this.num_candidates := num_candidates
+            this.has_comment := false
+
+            local hilited_opt := Format("c{:x} Background{:x}", CandidateBox.hilited_text_color, CandidateBox.hilited_back_color)
+
+            ; build preedit
+            this.max_width := 0
+            this.preedit_height := 0
+            local head_position := Format("x{} y{} section {}", this.MarginX, this.MarginY, CandidateBox.border)
+            local position := head_position
+            if pre {
+                this.pre := this.AddText(position, pre)
+                position := Format("x+{} ys {}", this.MarginX, CandidateBox.border)
+                this.pre.GetPos(, , &w, &h)
+                this.preedit_height := max(this.preedit_height, h)
+                this.pre_width := w
+                this.max_width += (w + this.MarginX)
+            }
+            if sel {
+                this.sel := this.AddText(position, sel)
+                this.sel.Opt(hilited_opt)
+                position := Format("x+{} ys {}", this.MarginX, CandidateBox.border)
+                this.sel.GetPos(, , &w, &h)
+                this.preedit_height := max(this.preedit_height, h)
+                this.sel_width := w
+                this.max_width += (w + this.MarginX)
+            }
+            if post {
+                this.post := this.AddText(position, post)
+                this.post.GetPos(, , &w, &h)
+                this.preedit_height := max(this.preedit_height, h)
+                this.post_width := w
+                this.max_width += w
+            }
+
+            ; build candidates
+            this.max_label_width := 0
+            this.max_candidate_width := 0
+            this.max_comment_width := 0
+            this.candidate_height := 0
+            hilited_opt := Format("c{:x} Background{:x}", CandidateBox.hilited_candidate_text_color, CandidateBox.hilited_candidate_back_color)
+            loop num_candidates {
+                position := Format("xs y+{} section {}", this.MarginY, CandidateBox.border)
+                local label := this.AddText(Format("Right {} vL{}", position, A_Index), A_Index . ". ")
+                label.GetPos(, , &w, &h1)
+                this.max_label_width := max(this.max_label_width, w + this.MarginX)
+
+                position := Format("x+{} ys {}", this.MarginX, CandidateBox.border)
+                local candidate := this.AddText(Format("{} vC{}", position, A_Index), cands[A_Index].text)
+                candidate.GetPos(, , &w, &h2)
+                this.max_candidate_width := max(this.max_candidate_width, w + this.MarginX)
+
+                if comment_text := cands[A_Index].comment
+                    this.has_comment := true
+                local comment := this.AddText(Format("{} vM{}", position, A_Index), comment_text)
+                comment.GetPos(, , &w, &h3)
+                comment.Opt(Format("c{:x}", CandidateBox.comment_text_color))
+                this.max_comment_width := max(this.max_comment_width, w)
+                this.candidate_height := max(this.candidate_height, h1, h2, h3)
+
+                if A_Index == hilited_index {
+                    label.Opt(hilited_opt)
+                    candidate.Opt(hilited_opt)
+                    comment.Opt(Format("c{:x} Background{:x}", CandidateBox.hilited_comment_text_color, CandidateBox.hilited_candidate_back_color))
+                }
+            }
+
+            ; adjust width height
+            local list_width := this.max_label_width + this.max_candidate_width + this.has_comment * this.max_comment_width
+            local box_width := max(CandidateBox.min_width, list_width)
+            if box_width > this.max_width && HasProp(this, "post") && this.post
+                this.post.Move(, , this.post_width + box_width - this.max_width)
+            if box_width > list_width {
+                this.max_candidate_width += box_width - list_width
+                loop num_candidates
+                    this["C" . A_Index].Move(, , this.max_candidate_width)
+            }
+            local y := 2 * this.MarginY + this.preedit_height
+            loop num_candidates {
+                local x := this.MarginX
+                this["L" . A_Index].Move(x, y, this.max_label_width)
+                this["L" . A_Index].GetPos(, , , &h)
+                local max_h := h
+                x += this.max_label_width
+                this["C" . A_Index].Move(x, y, this.max_candidate_width)
+                this["C" . A_Index].GetPos(, , , &h)
+                max_h := max(max_h, h)
+                x += this.max_candidate_width
+                this["M" . A_Index].Move(x, y, this.max_comment_width)
+                this["M" . A_Index].GetPos(, , , &h)
+                max_h := max(max_h, h)
+                y += (max_h + this.MarginY)
+            }
+
+            this.built := true
         }
 
-        total_width := 0
-        this.lv.ModifyCol()
-        if not has_comment
-            this.lv.ModifyCol(CandidateBox.comment_col, 0)
-        this.lv.GetPos(, , , &cands_height)
-        Loop CandidateBox.num_col {
-            width := SendMessage(LVM_GETCOLUMNWIDTH, A_Index - 1, 0, this.lv)
-            total_width += width
-            if A_Index == CandidateBox.cand_col
-                cand_width := width
+        Update(pre, sel, post, cands, num_candidates, hilited_index) {
+            local fake_gui := CandidateBox.BoxGui(pre, sel, post, cands, num_candidates, hilited_index)
+
+            ; reset preedit
+            if pre {
+                if !HasProp(this, "pre") || !this.pre
+                    this.pre := this.AddText(, pre)
+                this.pre.Value := fake_gui.pre.Value
+                fake_gui.pre.GetPos(&x, &y, &w, &h)
+                this.pre.Move(x, y, w, h)
+            }
+            if HasProp(this, "pre") && this.pre
+                this.pre.Visible := !!pre
+            if sel {
+                if !HasProp(this, "sel") || !this.sel
+                    this.sel := this.AddText(, sel)
+                this.sel.Value := fake_gui.sel.Value
+                fake_gui.sel.GetPos(&x, &y, &w, &h)
+                this.sel.Move(x, y, w, h)
+            }
+            if HasProp(this, "sel") && this.sel
+                this.sel.Visible := !!sel
+            if post {
+                if !HasProp(this, "post") || !this.post
+                    this.post := this.AddText(, post)
+                this.post.Value := fake_gui.post.Value
+                fake_gui.post.GetPos(&x, &y, &w, &h)
+                this.post.Move(x, y, w, h)
+            }
+            if HasProp(this, "post") && this.post
+                this.post.Visible := !!post
+
+            ; reset candidates
+            hilited_opt := Format("c{:x} Background{:x}", CandidateBox.hilited_candidate_text_color, CandidateBox.hilited_candidate_back_color)
+            normal_opt := Format("c{:x} Background{:x}", CandidateBox.text_color, CandidateBox.back_color)
+            loop this.num_candidates {
+                if A_Index > num_candidates {
+                    this["L" . A_Index].Visible := false
+                    this["C" . A_Index].Visible := false
+                    this["M" . A_Index].Visible := false
+                    continue
+                }
+                local fake_label := fake_gui["L" . A_Index]
+                local fake_candidate := fake_gui["C" . A_Index]
+                local fake_comment := fake_gui["M" . A_Index]
+                if this.num_candidates < A_Index {
+                    this.AddText(Format("vL{}", A_Index), fake_label.Value)
+                    this.AddText(Format("vC{}", A_Index), fake_candidate.Value)
+                    this.AddText(Format("vM{}", A_Index), fake_comment.Value)
+                }
+                local label := this["L" . A_Index]
+                local candidate := this["C" . A_Index]
+                local comment := this["M" . A_Index]
+                label.Value := fake_label.Value
+                fake_label.GetPos(&x, &y, &w, &h)
+                label.Move(x, y, w, h)
+                candidate.Value := fake_candidate.Value
+                fake_candidate.GetPos(&x, &y, &w, &h)
+                candidate.Move(x, y, w, h)
+                comment.Value := fake_comment.Value
+                fake_comment.GetPos(&x, &y, &w, &h)
+                comment.Move(x, y, w, h)
+
+                if A_Index == hilited_index {
+                    label.Opt(hilited_opt)
+                    candidate.Opt(hilited_opt)
+                    comment.Opt(Format("c{:x} Background{:x}", CandidateBox.hilited_comment_text_color, CandidateBox.hilited_candidate_back_color))
+                } else {
+                    label.Opt(normal_opt)
+                    candidate.Opt(normal_opt)
+                    comment.Opt(Format("c{:x} Background{:x}", CandidateBox.comment_text_color, CandidateBox.back_color))
+                }
+                local visible := (A_Index <= num_candidates)
+                label.Visible := visible
+                candidate.Visible := visible
+                comment.Visible := visible
+            }
+            this.num_candidates := max(this.num_candidates, num_candidates)
+
+            fake_gui.GetPos(, , &width, &height)
+            this.Move(, , width, height)
         }
-
-        if not cand_width
-            cand_width := SendMessage(LVM_GETCOLUMNWIDTH, CandidateBox.cand_col - 1, 0, this.lv)
-
-        max_width := Max(preedit_width, total_width, CandidateBox.min_width)
-        if total_width < max_width
-            this.lv.ModifyCol(CandidateBox.cand_col, cand_width + max_width - total_width)
-
-        this.lv.Move(, , max_width, lv_height)
-        this.pre.Move(, , max_width)
-        this.lv.Redraw()
-
-        width := max_width + 6
-        height := this.preedit_height + lv_height + this.MarginY
     }
 }
 
@@ -177,24 +343,4 @@ GetCompositionText(composition, &pre_selected, &selected, &post_selected) {
         pre_selected := StrGet(preedit_buffer, "UTF-8")
         return false
     }
-}
-
-GetMenuText(menu) {
-    local text := ""
-    if menu.num_candidates == 0
-        return text
-    local cands := menu.candidates
-    Loop menu.num_candidates {
-        local is_highlighted := (A_Index == menu.highlighted_candidate_index + 1)
-        if A_Index > 1
-            text := text . "`r`n"
-        text := text . Format("{}. {}{}{}{}",
-                              A_Index,
-                              (is_highlighted ? "[" : " "),
-                              cands[A_Index].text,
-                              (is_highlighted ? "]" : " "),
-                              cands[A_Index].comment
-        )
-    }
-    return text
 }

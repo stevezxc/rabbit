@@ -24,6 +24,15 @@ class UIStyle {
     static back_color := 0xffeceeee
     static font_face := "Microsoft YaHei UI"
     static font_point := 12
+    static comment_text_color := 0xff222222
+    static hilited_back_color := 0xff000000
+    static hilited_text_color := 0xffffffff
+    static hilited_candidate_text_color := 0xffffffff
+    static hilited_candidate_back_color := 0xff000000
+    static hilited_comment_text_color   := 0xff222222
+    static margin_x := 5
+    static margin_y := 5
+    static min_width := 150
 
     static Update(config, initialize) {
         global rime
@@ -36,6 +45,12 @@ class UIStyle {
         UIStyle.font_point := rime.config_get_int(config, "style/font_point")
         if UIStyle.font_point <= 0
             UIStyle.font_point := 12
+        if rime.config_test_get_int(config, "style/layout/margin_x", &mx) && mx >= 0
+            UIStyle.margin_x := mx
+        if rime.config_test_get_int(config, "style/layout/margin_y", &my) && my >= 0
+            UIStyle.margin_y := my
+        if rime.config_test_get_int(config, "style/layout/min_width", &w) && w >= 0
+            UIStyle.min_width := w
         if initialize and color := rime.config_get_string(config, "style/color_scheme")
             UIStyle.UpdateColor(config, color)
     }
@@ -52,6 +67,12 @@ class UIStyle {
 
             UIStyle.text_color := UIStyle.GetColor(config, prefix . "/text_color", fmt, 0xff000000)
             UIStyle.back_color := UIStyle.GetColor(config, prefix . "/back_color", fmt, 0xffeceeee)
+            UIStyle.comment_text_color := UIStyle.GetColor(config, prefix . "/comment_text_color", fmt, UIStyle.text_color)
+            UIStyle.hilited_text_color := UIStyle.GetColor(config, prefix . "/hilited_text_color", fmt, UIStyle.text_color)
+            UIStyle.hilited_back_color := UIStyle.GetColor(config, prefix . "/hilited_back_color", fmt, UIStyle.back_color)
+            UIStyle.hilited_candidate_text_color := UIStyle.GetColor(config, prefix . "/hilited_candidate_text_color", fmt, UIStyle.hilited_text_color)
+            UIStyle.hilited_candidate_back_color := UIStyle.GetColor(config, prefix . "/hilited_candidate_back_color", fmt, UIStyle.hilited_back_color)
+            UIStyle.hilited_comment_text_color := UIStyle.GetColor(config, prefix . "/hilited_comment_text_color", fmt, UIStyle.hilited_candidate_text_color)
 
             return true
         }
