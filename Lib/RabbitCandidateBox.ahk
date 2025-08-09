@@ -180,6 +180,7 @@ class CandidateBox {
                 local comment := this.AddText(Format("{} vM{}", position, A_Index), comment_text)
                 comment.GetPos(, , &w, &h3)
                 comment.Opt(Format("c{:x}", CandidateBox.comment_text_color))
+                comment.Visible := this.has_comment
                 this.max_comment_width := max(this.max_comment_width, w)
                 this.candidate_height := max(this.candidate_height, h1, h2, h3)
 
@@ -253,8 +254,8 @@ class CandidateBox {
                 this.post.Visible := !!post
 
             ; reset candidates
-            hilited_opt := Format("c{:x} Background{:x}", CandidateBox.hilited_candidate_text_color, CandidateBox.hilited_candidate_back_color)
-            normal_opt := Format("c{:x} Background{:x}", CandidateBox.text_color, CandidateBox.back_color)
+            hilited_opt := Format("c{:x} Background{:x} {}", CandidateBox.hilited_candidate_text_color, CandidateBox.hilited_candidate_back_color, CandidateBox.border)
+            normal_opt := Format("c{:x} Background{:x} {}", CandidateBox.text_color, CandidateBox.back_color, CandidateBox.border)
             this.num_candidates := max(this.num_candidates, num_candidates)
             loop this.num_candidates {
                 if A_Index > num_candidates {
@@ -291,16 +292,16 @@ class CandidateBox {
                 if A_Index == hilited_index {
                     label.Opt(hilited_opt)
                     candidate.Opt(hilited_opt)
-                    comment.Opt(Format("c{:x} Background{:x}", CandidateBox.hilited_comment_text_color, CandidateBox.hilited_candidate_back_color))
+                    comment.Opt(Format("c{:x} Background{:x} {}", CandidateBox.hilited_comment_text_color, CandidateBox.hilited_candidate_back_color, CandidateBox.border))
                 } else {
                     label.Opt(normal_opt)
                     candidate.Opt(normal_opt)
-                    comment.Opt(Format("c{:x} Background{:x}", CandidateBox.comment_text_color, CandidateBox.back_color))
+                    comment.Opt(Format("c{:x} Background{:x} {}", CandidateBox.comment_text_color, CandidateBox.back_color, CandidateBox.border))
                 }
                 local visible := (A_Index <= num_candidates)
                 label.Visible := visible
                 candidate.Visible := visible
-                comment.Visible := visible
+                comment.Visible := (fake_gui.has_comment && visible)
             }
 
             fake_gui.GetPos(, , &width, &height)
