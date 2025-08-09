@@ -255,6 +255,7 @@ class CandidateBox {
             ; reset candidates
             hilited_opt := Format("c{:x} Background{:x}", CandidateBox.hilited_candidate_text_color, CandidateBox.hilited_candidate_back_color)
             normal_opt := Format("c{:x} Background{:x}", CandidateBox.text_color, CandidateBox.back_color)
+            this.num_candidates := max(this.num_candidates, num_candidates)
             loop this.num_candidates {
                 if A_Index > num_candidates {
                     this["L" . A_Index].Visible := false
@@ -265,14 +266,18 @@ class CandidateBox {
                 local fake_label := fake_gui["L" . A_Index]
                 local fake_candidate := fake_gui["C" . A_Index]
                 local fake_comment := fake_gui["M" . A_Index]
-                if this.num_candidates < A_Index {
-                    this.AddText(Format("vL{}", A_Index), fake_label.Value)
-                    this.AddText(Format("vC{}", A_Index), fake_candidate.Value)
-                    this.AddText(Format("vM{}", A_Index), fake_comment.Value)
-                }
-                local label := this["L" . A_Index]
-                local candidate := this["C" . A_Index]
-                local comment := this["M" . A_Index]
+                try
+                    local label := this["L" . A_Index]
+                catch
+                    local label := this.AddText(Format("vL{}", A_Index), fake_label.Value)
+                try
+                    local candidate := this["C" . A_Index]
+                catch
+                    local candidate := this.AddText(Format("vC{}", A_Index), fake_candidate.Value)
+                try
+                    local comment := this["M" . A_Index]
+                catch
+                    local comment := this.AddText(Format("vM{}", A_Index), fake_comment.Value)
                 label.Value := fake_label.Value
                 fake_label.GetPos(&x, &y, &w, &h)
                 label.Move(x, y, w, h)
@@ -297,7 +302,6 @@ class CandidateBox {
                 candidate.Visible := visible
                 comment.Visible := visible
             }
-            this.num_candidates := max(this.num_candidates, num_candidates)
 
             fake_gui.GetPos(, , &width, &height)
             this.Move(, , width, height)
