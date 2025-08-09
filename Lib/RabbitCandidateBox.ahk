@@ -196,6 +196,7 @@ class CandidateBox {
             local box_width := max(CandidateBox.min_width, list_width)
             if box_width > this.max_width && HasProp(this, "post") && this.post
                 this.post.Move(, , this.post_width + box_width - this.max_width)
+            box_width := max(box_width, this.max_width)
             if box_width > list_width {
                 this.max_candidate_width += box_width - list_width
                 loop num_candidates
