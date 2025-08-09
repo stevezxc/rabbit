@@ -64,6 +64,20 @@ class CandidateBox {
         CandidateBox.hilited_comment_text_color := del_opaque(UIStyle.hilited_comment_text_color)
         CandidateBox.margin_x := UIStyle.margin_x
         CandidateBox.margin_y := UIStyle.margin_y
+
+        if CandidateBox.gui {
+            CandidateBox.gui.BackColor := CandidateBox.back_color
+            CandidateBox.gui.SetFont(Format("s{} c{:x}", CandidateBox.font_point, CandidateBox.text_color), CandidateBox.font_face)
+            CandidateBox.gui.MarginX := CandidateBox.margin_x
+            CandidateBox.gui.MarginY := CandidateBox.margin_y
+
+            if HasProp(CandidateBox.gui, "pre") && CandidateBox.gui.pre
+                CandidateBox.gui.pre.Opt(Format("c{:x}", CandidateBox.text_color))
+            if HasProp(CandidateBox.gui, "sel") && CandidateBox.gui.sel
+                CandidateBox.gui.sel.Opt(Format("c{:x} Background{:x}", CandidateBox.hilited_text_color, CandidateBox.hilited_back_color))
+            if HasProp(CandidateBox.gui, "post") && CandidateBox.gui.post
+                CandidateBox.gui.post.Opt(Format("c{:x}", CandidateBox.text_color))
+        }
     }
 
     Build(context, &width, &height) {
