@@ -164,5 +164,14 @@ OnColorChange(wParam, lParam, msg, hWnd) {
             rime.config_close(config)
             box.UpdateUIStyle()
         }
+        DarkMode.set(IS_DARK_MODE)
+    }
+}
+
+; https://www.autohotkey.com/boards/viewtopic.php?p=515002&sid=859605067314b6d823a026658547b66f#p515002
+class DarkMode {
+    static set(mode) {
+        DllCall(DllCall("GetProcAddress", "ptr", DllCall("GetModuleHandle", "str", "uxtheme", "ptr"), "ptr", 135, "ptr"), "int", mode)
+        DllCall(DllCall("GetProcAddress", "ptr", DllCall("GetModuleHandle", "str", "uxtheme", "ptr"), "ptr", 136, "ptr"))
     }
 }
