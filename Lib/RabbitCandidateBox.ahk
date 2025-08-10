@@ -83,7 +83,8 @@ class CandidateBox {
             CandidateBox.gui := CandidateBox.BoxGui(&context)
         else
             CandidateBox.gui.Update(&context)
-        CandidateBox.gui.GetPos(, , &width, &height)
+        width := CandidateBox.gui.max_width
+        height := CandidateBox.gui.max_height
     }
 
     Show(x, y) {
@@ -200,9 +201,9 @@ class CandidateBox {
             local box_width := max(UIStyle.min_width, list_width)
             if box_width > this.max_width && HasProp(this, "post") && this.post
                 this.post.Move(, , this.post_width + box_width - this.max_width)
-            box_width := max(box_width, this.max_width)
-            if box_width > list_width {
-                this.max_candidate_width += box_width - list_width
+            this.max_width := max(box_width, this.max_width)
+            if this.max_width > list_width {
+                this.max_candidate_width += this.max_width - list_width
                 loop num_candidates
                     this["C" . A_Index].Move(, , this.max_candidate_width)
             }
@@ -222,6 +223,8 @@ class CandidateBox {
                 max_h := max(max_h, h)
                 y += (max_h + this.MarginY)
             }
+            this.max_height := y
+            this.max_width += (2 * this.MarginX)
 
             this.built := true
         }
@@ -232,6 +235,8 @@ class CandidateBox {
             local hilited_index := menu.highlighted_candidate_index + 1
             this.SetFont(CandidateBox.base_font_opt, UIStyle.font_face)
             this.num_candidates := max(this.num_candidates, num_candidates)
+            this.max_width := fake_gui.max_width
+            this.max_height := fake_gui.max_height
 
             ; reset preedit
             if pre {
