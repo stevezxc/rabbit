@@ -80,28 +80,11 @@ class CandidateBox {
         }
     }
 
-    Build(context, &width, &height) {
-        local cands := context.menu.candidates
-        GetCompositionText(context.composition, &pre_selected, &selected, &post_selected)
-        if !CandidateBox.gui || !CandidateBox.gui.built {
-            CandidateBox.gui := CandidateBox.BoxGui(
-                pre_selected,
-                selected,
-                post_selected,
-                cands,
-                context.menu.num_candidates,
-                context.menu.highlighted_candidate_index + 1
-            )
-        } else {
-            CandidateBox.gui.Update(
-                pre_selected,
-                selected,
-                post_selected,
-                cands,
-                context.menu.num_candidates,
-                context.menu.highlighted_candidate_index + 1
-            )
-        }
+    Build(&context, &width, &height) {
+        if !CandidateBox.gui || !CandidateBox.gui.built
+            CandidateBox.gui := CandidateBox.BoxGui(&context)
+        else
+            CandidateBox.gui.Update(&context)
         CandidateBox.gui.GetPos(, , &width, &height)
     }
 
@@ -116,8 +99,16 @@ class CandidateBox {
 
     class BoxGui extends Gui {
         built := false
-        __New(pre, sel, post, cands, num_candidates, hilited_index) {
+        __New(&context, &pre?, &sel?, &post?, &menu?) {
             super.__New(, , this)
+
+            menu := context.menu
+            local cands := menu.candidates
+            local num_candidates := menu.num_candidates
+            local hilited_index := menu.highlighted_candidate_index + 1
+            local composition := context.composition
+            GetCompositionText(&composition, &pre, &sel, &post)
+
             this.Opt(Format("-DPIScale -Caption +Owner +AlwaysOnTop {} {} {}", WS_EX_NOACTIVATE, WS_EX_COMPOSITED, WS_EX_LAYERED))
             this.BackColor := CandidateBox.back_color
             this.SetFont(Format("s{} c{:x}", CandidateBox.font_point, CandidateBox.text_color), CandidateBox.font_face)
@@ -164,9 +155,17 @@ class CandidateBox {
             this.max_comment_width := 0
             this.candidate_height := 0
             hilited_opt := Format("c{:x} Background{:x}", CandidateBox.hilited_candidate_text_color, CandidateBox.hilited_candidate_back_color)
+            local has_label := !!context.select_labels[0]
+            local select_keys := menu.select_keys
+            local num_select_keys := StrLen(select_keys)
             loop num_candidates {
                 position := Format("xs y+{} section {}", this.MarginY, CandidateBox.border)
-                local label := this.AddText(Format("Right {} vL{}", position, A_Index), A_Index . ". ")
+                local label_text := String(A_Index)
+                if A_Index <= menu.page_size && has_label
+                    label_text := context.select_labels[A_Index]
+                else if A_Index <= num_select_keys
+                    label_text := SubStr(select_keys, A_Index, 1)
+                local label := this.AddText(Format("Right {} vL{}", position, A_Index), label_text . " ")
                 label.GetPos(, , &w, &h1)
                 this.max_label_width := max(this.max_label_width, w + this.MarginX)
 
@@ -222,8 +221,10 @@ class CandidateBox {
             this.built := true
         }
 
-        Update(pre, sel, post, cands, num_candidates, hilited_index) {
-            local fake_gui := CandidateBox.BoxGui(pre, sel, post, cands, num_candidates, hilited_index)
+        Update(&context) {
+            local fake_gui := CandidateBox.BoxGui(&context, &pre, &sel, &post, &menu)
+            local num_candidates := menu.num_candidates
+            local hilited_index := menu.highlighted_candidate_index + 1
 
             ; reset preedit
             if pre {
@@ -311,7 +312,7 @@ class CandidateBox {
     }
 }
 
-GetCompositionText(composition, &pre_selected, &selected, &post_selected) {
+GetCompositionText(&composition, &pre_selected, &selected, &post_selected) {
     pre_selected := ""
     selected := ""
     post_selected := ""
