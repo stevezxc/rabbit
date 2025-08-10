@@ -26,12 +26,18 @@ fix_candidate_box: false
 
 style:
   color_scheme: aqua
-  font_point: 12
+  font_face: Microsoft YaHei UI
+  label_font_face: Microsoft YaHei UI
+  comment_font_face: Microsoft YaHei UI
+  font_point: 14
+  label_font_point: 14
+  comment_font_point: 14
+  # 不同于小狼毫，格式化标签文本需符合 AutoHotkey 语法
+  # 详见 https://wyagd001.github.io/v2/docs/lib/Format.htm#FormatSpec
+  label_format: "{:s}. "
 
 # Copied from weasel.yaml
-# Current supported fields
-#   - text_color
-#   - back_color
+# 默认颜色格式为 argb，暂不支持 alpha 通道
 preset_color_schemes:
   aqua:
     name: 碧水／Aqua

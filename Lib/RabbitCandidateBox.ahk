@@ -27,20 +27,7 @@ global WS_EX_LAYERED    := "+E0x00080000"
 class CandidateBox {
     static dbg := false
     static gui := 0
-    static back_color := 0xeeeeec
-    static text_color := 0x000000
-    static font_face  := "Microsoft YaHei UI"
-    static font_point := 12
-    static comment_text_color := 0x222222
-    static hilited_back_color := 0x000000
-    static hilited_text_color := 0xffffff
-    static hilited_candidate_text_color := 0xffffff
-    static hilited_candidate_back_color := 0x000000
-    static hilited_comment_text_color   := 0x222222
-    static margin_x   := 5
-    static margin_y   := 5
-    static min_width  := 150
-    static border     := CandidateBox.dbg ? "+border" : 0
+    static border := CandidateBox.dbg ? "+border" : 0
 
     __New() {
         this.UpdateUIStyle()
@@ -51,32 +38,43 @@ class CandidateBox {
         del_opaque(color) {
             return color & 0xffffff
         }
-        CandidateBox.back_color := del_opaque(UIStyle.back_color)
         CandidateBox.text_color := del_opaque(UIStyle.text_color)
-        if UIStyle.font_face
-            CandidateBox.font_face := UIStyle.font_face
-        CandidateBox.font_point := UIStyle.font_point
+        CandidateBox.back_color := del_opaque(UIStyle.back_color)
+        CandidateBox.candidate_text_color := del_opaque(UIStyle.candidate_text_color)
+        CandidateBox.candidate_back_color := del_opaque(UIStyle.candidate_back_color)
+        CandidateBox.label_color := del_opaque(UIStyle.label_color)
         CandidateBox.comment_text_color := del_opaque(UIStyle.comment_text_color)
-        CandidateBox.hilited_back_color := del_opaque(UIStyle.hilited_back_color)
         CandidateBox.hilited_text_color := del_opaque(UIStyle.hilited_text_color)
-        CandidateBox.hilited_candidate_back_color := del_opaque(UIStyle.hilited_candidate_back_color)
+        CandidateBox.hilited_back_color := del_opaque(UIStyle.hilited_back_color)
         CandidateBox.hilited_candidate_text_color := del_opaque(UIStyle.hilited_candidate_text_color)
+        CandidateBox.hilited_candidate_back_color := del_opaque(UIStyle.hilited_candidate_back_color)
+        CandidateBox.hilited_label_color := del_opaque(UIStyle.hilited_label_color)
         CandidateBox.hilited_comment_text_color := del_opaque(UIStyle.hilited_comment_text_color)
-        CandidateBox.margin_x := UIStyle.margin_x
-        CandidateBox.margin_y := UIStyle.margin_y
+
+        CandidateBox.base_opt := Format("c{:x} Background{:x} {}", CandidateBox.text_color, CandidateBox.back_color, CandidateBox.border)
+        CandidateBox.candidate_opt := Format("c{:x} Background{:x} {}", CandidateBox.candidate_text_color, CandidateBox.candidate_back_color, CandidateBox.border)
+        CandidateBox.label_opt := Format("c{:x} Background{:x} {}", CandidateBox.label_color, CandidateBox.candidate_back_color, CandidateBox.border)
+        CandidateBox.comment_opt := Format("c{:x} Background{:x} {}", CandidateBox.comment_text_color, CandidateBox.candidate_back_color, CandidateBox.border)
+        CandidateBox.hilited_opt := Format("c{:x} Background{:x} {}", CandidateBox.hilited_text_color, CandidateBox.hilited_back_color, CandidateBox.border)
+        CandidateBox.hilited_candidate_opt := Format("c{:x} Background{:x} {}", CandidateBox.hilited_candidate_text_color, CandidateBox.hilited_candidate_back_color, CandidateBox.border)
+        CandidateBox.hilited_label_opt := Format("c{:x} Background{:x} {}", CandidateBox.hilited_label_color, CandidateBox.hilited_candidate_back_color, CandidateBox.border)
+        CandidateBox.hilited_comment_opt := Format("c{:x} Background{:x} {}", CandidateBox.hilited_comment_text_color, CandidateBox.hilited_candidate_back_color, CandidateBox.border)
+
+        CandidateBox.base_font_opt := Format("s{} q5", UIStyle.font_point)
+        CandidateBox.label_font_opt := Format("s{} q5", UIStyle.label_font_point)
+        CandidateBox.comment_font_opt := Format("s{} q5", UIStyle.comment_font_point)
 
         if CandidateBox.gui {
             CandidateBox.gui.BackColor := CandidateBox.back_color
-            CandidateBox.gui.SetFont(Format("s{} c{:x}", CandidateBox.font_point, CandidateBox.text_color), CandidateBox.font_face)
-            CandidateBox.gui.MarginX := CandidateBox.margin_x
-            CandidateBox.gui.MarginY := CandidateBox.margin_y
+            CandidateBox.gui.MarginX := UIStyle.margin_x
+            CandidateBox.gui.MarginY := UIStyle.margin_y
 
             if HasProp(CandidateBox.gui, "pre") && CandidateBox.gui.pre
-                CandidateBox.gui.pre.Opt(Format("c{:x}", CandidateBox.text_color))
+                CandidateBox.gui.pre.Opt(CandidateBox.base_opt)
             if HasProp(CandidateBox.gui, "sel") && CandidateBox.gui.sel
-                CandidateBox.gui.sel.Opt(Format("c{:x} Background{:x}", CandidateBox.hilited_text_color, CandidateBox.hilited_back_color))
+                CandidateBox.gui.sel.Opt(CandidateBox.hilited_opt)
             if HasProp(CandidateBox.gui, "post") && CandidateBox.gui.post
-                CandidateBox.gui.post.Opt(Format("c{:x}", CandidateBox.text_color))
+                CandidateBox.gui.post.Opt(CandidateBox.base_opt)
         }
     }
 
@@ -111,13 +109,11 @@ class CandidateBox {
 
             this.Opt(Format("-DPIScale -Caption +Owner +AlwaysOnTop {} {} {}", WS_EX_NOACTIVATE, WS_EX_COMPOSITED, WS_EX_LAYERED))
             this.BackColor := CandidateBox.back_color
-            this.SetFont(Format("s{} c{:x}", CandidateBox.font_point, CandidateBox.text_color), CandidateBox.font_face)
-            this.MarginX := CandidateBox.margin_x
-            this.MarginY := CandidateBox.margin_y
+            this.SetFont(CandidateBox.base_font_opt, UIStyle.font_face)
+            this.MarginX := UIStyle.margin_x
+            this.MarginY := UIStyle.margin_y
             this.num_candidates := num_candidates
             this.has_comment := false
-
-            local hilited_opt := Format("c{:x} Background{:x}", CandidateBox.hilited_text_color, CandidateBox.hilited_back_color)
 
             ; build preedit
             this.max_width := 0
@@ -126,6 +122,7 @@ class CandidateBox {
             local position := head_position
             if pre {
                 this.pre := this.AddText(position, pre)
+                this.pre.Opt(CandidateBox.base_opt)
                 position := Format("x+{} ys {}", this.MarginX, CandidateBox.border)
                 this.pre.GetPos(, , &w, &h)
                 this.preedit_height := max(this.preedit_height, h)
@@ -134,7 +131,7 @@ class CandidateBox {
             }
             if sel {
                 this.sel := this.AddText(position, sel)
-                this.sel.Opt(hilited_opt)
+                this.sel.Opt(CandidateBox.hilited_opt)
                 position := Format("x+{} ys {}", this.MarginX, CandidateBox.border)
                 this.sel.GetPos(, , &w, &h)
                 this.preedit_height := max(this.preedit_height, h)
@@ -143,6 +140,7 @@ class CandidateBox {
             }
             if post {
                 this.post := this.AddText(position, post)
+                this.post.Opt(CandidateBox.base_opt)
                 this.post.GetPos(, , &w, &h)
                 this.preedit_height := max(this.preedit_height, h)
                 this.post_width := w
@@ -154,7 +152,6 @@ class CandidateBox {
             this.max_candidate_width := 0
             this.max_comment_width := 0
             this.candidate_height := 0
-            hilited_opt := Format("c{:x} Background{:x}", CandidateBox.hilited_candidate_text_color, CandidateBox.hilited_candidate_back_color)
             local has_label := !!context.select_labels[0]
             local select_keys := menu.select_keys
             local num_select_keys := StrLen(select_keys)
@@ -165,17 +162,21 @@ class CandidateBox {
                     label_text := context.select_labels[A_Index]
                 else if A_Index <= num_select_keys
                     label_text := SubStr(select_keys, A_Index, 1)
-                local label := this.AddText(Format("Right {} vL{}", position, A_Index), label_text . " ")
+                label_text := Format(UIStyle.label_format, label_text)
+                this.SetFont(CandidateBox.label_font_opt, UIStyle.label_font_face)
+                local label := this.AddText(Format("Right {} vL{}", position, A_Index), label_text)
                 label.GetPos(, , &w, &h1)
                 this.max_label_width := max(this.max_label_width, w + this.MarginX)
 
                 position := Format("x+{} ys {}", this.MarginX, CandidateBox.border)
+                this.SetFont(CandidateBox.base_font_opt, UIStyle.font_face)
                 local candidate := this.AddText(Format("{} vC{}", position, A_Index), cands[A_Index].text)
                 candidate.GetPos(, , &w, &h2)
                 this.max_candidate_width := max(this.max_candidate_width, w + this.MarginX)
 
                 if comment_text := cands[A_Index].comment
                     this.has_comment := true
+                this.SetFont(CandidateBox.comment_font_opt, UIStyle.comment_font_face)
                 local comment := this.AddText(Format("{} vM{}", position, A_Index), comment_text)
                 comment.GetPos(, , &w, &h3)
                 comment.Opt(Format("c{:x}", CandidateBox.comment_text_color))
@@ -184,15 +185,19 @@ class CandidateBox {
                 this.candidate_height := max(this.candidate_height, h1, h2, h3)
 
                 if A_Index == hilited_index {
-                    label.Opt(hilited_opt)
-                    candidate.Opt(hilited_opt)
-                    comment.Opt(Format("c{:x} Background{:x}", CandidateBox.hilited_comment_text_color, CandidateBox.hilited_candidate_back_color))
+                    label.Opt(CandidateBox.hilited_label_opt)
+                    candidate.Opt(CandidateBox.hilited_candidate_opt)
+                    comment.Opt(CandidateBox.hilited_comment_opt)
+                } else {
+                    label.Opt(CandidateBox.label_opt)
+                    candidate.Opt(CandidateBox.candidate_opt)
+                    comment.Opt(CandidateBox.comment_opt)
                 }
             }
 
             ; adjust width height
             local list_width := this.max_label_width + this.max_candidate_width + this.has_comment * this.max_comment_width
-            local box_width := max(CandidateBox.min_width, list_width)
+            local box_width := max(UIStyle.min_width, list_width)
             if box_width > this.max_width && HasProp(this, "post") && this.post
                 this.post.Move(, , this.post_width + box_width - this.max_width)
             box_width := max(box_width, this.max_width)
@@ -225,6 +230,7 @@ class CandidateBox {
             local fake_gui := CandidateBox.BoxGui(&context, &pre, &sel, &post, &menu)
             local num_candidates := menu.num_candidates
             local hilited_index := menu.highlighted_candidate_index + 1
+            this.SetFont(CandidateBox.base_font_opt, UIStyle.font_face)
 
             ; reset preedit
             if pre {
@@ -256,9 +262,6 @@ class CandidateBox {
                 this.post.Visible := !!post
 
             ; reset candidates
-            hilited_opt := Format("c{:x} Background{:x} {}", CandidateBox.hilited_candidate_text_color, CandidateBox.hilited_candidate_back_color, CandidateBox.border)
-            normal_opt := Format("c{:x} Background{:x} {}", CandidateBox.text_color, CandidateBox.back_color, CandidateBox.border)
-            this.num_candidates := max(this.num_candidates, num_candidates)
             loop this.num_candidates {
                 if A_Index > num_candidates {
                     this["L" . A_Index].Visible := false
@@ -269,14 +272,17 @@ class CandidateBox {
                 local fake_label := fake_gui["L" . A_Index]
                 local fake_candidate := fake_gui["C" . A_Index]
                 local fake_comment := fake_gui["M" . A_Index]
+                this.SetFont(CandidateBox.label_font_opt, UIStyle.label_font_face)
                 try
                     local label := this["L" . A_Index]
                 catch
                     local label := this.AddText(Format("vL{}", A_Index), fake_label.Value)
+                this.SetFont(CandidateBox.base_font_opt, UIStyle.font_face)
                 try
                     local candidate := this["C" . A_Index]
                 catch
                     local candidate := this.AddText(Format("vC{}", A_Index), fake_candidate.Value)
+                this.SetFont(CandidateBox.comment_font_opt, UIStyle.comment_font_face)
                 try
                     local comment := this["M" . A_Index]
                 catch
@@ -292,13 +298,13 @@ class CandidateBox {
                 comment.Move(x, y, w, h)
 
                 if A_Index == hilited_index {
-                    label.Opt(hilited_opt)
-                    candidate.Opt(hilited_opt)
-                    comment.Opt(Format("c{:x} Background{:x} {}", CandidateBox.hilited_comment_text_color, CandidateBox.hilited_candidate_back_color, CandidateBox.border))
+                    label.Opt(CandidateBox.hilited_label_opt)
+                    candidate.Opt(CandidateBox.hilited_candidate_opt)
+                    comment.Opt(CandidateBox.hilited_comment_opt)
                 } else {
-                    label.Opt(normal_opt)
-                    candidate.Opt(normal_opt)
-                    comment.Opt(Format("c{:x} Background{:x} {}", CandidateBox.comment_text_color, CandidateBox.back_color, CandidateBox.border))
+                    label.Opt(CandidateBox.label_opt)
+                    candidate.Opt(CandidateBox.candidate_opt)
+                    comment.Opt(CandidateBox.comment_opt)
                 }
                 local visible := (A_Index <= num_candidates)
                 label.Visible := visible
