@@ -231,6 +231,7 @@ class CandidateBox {
             local num_candidates := menu.num_candidates
             local hilited_index := menu.highlighted_candidate_index + 1
             this.SetFont(CandidateBox.base_font_opt, UIStyle.font_face)
+            this.num_candidates := max(this.num_candidates, num_candidates)
 
             ; reset preedit
             if pre {
