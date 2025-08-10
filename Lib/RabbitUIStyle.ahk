@@ -208,10 +208,10 @@ OnColorChange(wParam, lParam, msg, hWnd) {
     IS_DARK_MODE := RabbitIsUserDarkMode()
     if old_dark != IS_DARK_MODE {
         if config := rime.config_open("rabbit") {
-            UIStyle.Update(config, true)
+            UIStyle.Update(&config, true)
             if IS_DARK_MODE {
                 if color_name := rime.config_get_string(config, "style/color_scheme_dark")
-                    UIStyle.use_dark := UIStyle.UpdateColor(config, color_name)
+                    UIStyle.use_dark := UIStyle.UpdateColor(&config, color_name)
             }
 
             rime.config_close(config)
