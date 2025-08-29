@@ -65,6 +65,7 @@ rabbit/
 
 - [librime](https://github.com/rime/librime)
 - [OpenCC](https://github.com/BYVoid/OpenCC)
+- [AHKv2-Gdip](https://github.com/buliasz/AHKv2-Gdip)
 - [librime-ahk](https://github.com/rimeinn/librime-ahk)
 - [GetCaretPos](https://github.com/Descolada/AHK-v2-libraries)
 - [GetCaretPosEx](https://github.com/Tebayaki/AutoHotkeyScripts/tree/main/lib/GetCaretPosEx)
