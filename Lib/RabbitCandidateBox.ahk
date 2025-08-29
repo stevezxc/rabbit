@@ -14,9 +14,11 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- */
+*/
 
 #Include <RabbitUIStyle>
+#Include <RabbitThemesUI>
+#Include <Gdip/Gdip_All>
 
 global LVM_GETCOLUMNWIDTH := 0x101D
 ; https://learn.microsoft.com/windows/win32/winmsg/extended-window-styles
@@ -24,6 +26,319 @@ global WS_EX_NOACTIVATE := "+E0x8000000"
 global WS_EX_COMPOSITED := "+E0x02000000"
 global WS_EX_LAYERED    := "+E0x00080000"
 
+class CandidateBox {
+    pToken := 0
+    gui := 0
+    hDC := 0
+    pBitmap := 0
+    hBitmap := 0
+    oBitmap := 0
+    pGraphics := 0
+    hFont := 0
+    hFormat := 0
+
+    static isHidden := 1
+
+    __New() {
+        if !this.pToken {
+            this.pToken := Gdip_Startup()
+            if !this.pToken {
+                MsgBox("GDI+ failed to start.")
+                ExitApp
+            }
+        }
+        ; +E0x8080088: WS_EX_NOACTIVATE | WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_EX_TOPMOST
+        this.gui := Gui("-Caption +E0x8080088 +LastFound -DPIScale +AlwaysOnTop", "CandidateBox")
+        this.dpiSacle := GUIUtilities.GetMonitorDpiScale()
+
+        this.UpdateUIStyle()
+    }
+
+    __Delete() {
+        this.ReleaseAll()
+    }
+
+    UpdateUIStyle() {
+        this.borderWidth := UIStyle.border_width
+        this.borderColor := UIStyle.border_color
+        this.boxCornerR := UIStyle.corner_radius
+        this.hlCornerR := UIStyle.round_corner
+        this.lineSpacing := UIStyle.margin_y
+        this.padding := UIStyle.margin_x
+
+        ; only use one font to show
+        this.fontName := UIStyle.font_face
+        this.fontSize := UIStyle.font_point
+
+        ; preedite style
+        this.textColor := UIStyle.text_color
+        this.backgroundColor := UIStyle.back_color
+        this.hlTxtColor := UIStyle.hilited_text_color
+        this.hlBgColor := UIStyle.hilited_back_color
+        ; candidate style
+        this.hlCandTxtColor := UIStyle.hilited_candidate_text_color
+        this.hlCandBgColor := UIStyle.hilited_candidate_back_color
+        this.candTxtColor := UIStyle.candidate_text_color
+        this.candBgColor := UIStyle.candidate_back_color
+
+        ; some color schemes have no these colors
+        this.labelColor := UIStyle.label_color
+        this.hlLabelColor := UIStyle.hilited_label_color
+        this.commentTxtColor := UIStyle.comment_text_color
+        this.hlCommentTxtColor := UIStyle.hilited_comment_text_color
+    }
+
+    Build(context, &calcW, &calcH) {
+        local menu := context.menu
+        local cands := menu.candidates
+        this.num_candidates := menu.num_candidates
+        this.hilited_index := menu.highlighted_candidate_index + 1
+
+        GetCompositionText(context.composition, &pre_selected, &selected, &post_selected)
+        this.prdSelTxt := pre_selected
+        this.prdHlSelTxt := selected
+        this.prdHlUnselTxt := post_selected
+        this.labelsInfoArray := []
+        this.candsInfoArray := []
+        this.commentsInfoArray := []
+
+        this.hFamily := Gdip_FontFamilyCreate(this.fontName)
+        this.hFont := Gdip_FontCreate(this.hFamily, this.fontSize * this.dpiSacle, regular := 0)
+        this.hFormat := Gdip_StringFormatCreate(0x0001000 | 0x0004000) ; nowrap and noclip
+        Gdip_SetStringFormatAlign(this.hFormat, left := 0) ; left:0, center:1, right:2
+
+        local hDC := GetDC(this.gui.Hwnd)
+        local pGraphics := Gdip_GraphicsFromHDC(hDC)
+
+        CreateRectF(&RC, 0, 0, 0, 0)
+        ; Measure preedit texts
+        this.prdSelSize := this.MeasureString(pGraphics, this.prdSelTxt, this.hFont, this.hFormat, &RC)
+        this.prdHlSelSize := this.MeasureString(pGraphics, this.prdHlSelTxt, this.hFont, this.hFormat, &RC)
+        this.prdHlUnselSize := this.MeasureString(pGraphics, this.prdHlUnselTxt, this.hFont, this.hFormat, &RC)
+
+        ; Measure candidate texts
+        this.candRowSizes := []
+        maxRowWidth := this.prdSelSize.w + this.padding + this.prdHlSelSize.w + this.prdHlUnselSize.w
+        totalHeight := this.prdHlSelSize.h + this.lineSpacing
+
+        has_label := !!context.select_labels[0]
+        select_keys := menu.select_keys
+        num_select_keys := StrLen(select_keys)
+
+        Loop this.num_candidates {
+            labelText := String(A_Index)
+            if A_Index <= menu.page_size && has_label
+                labelText := context.select_labels[A_Index] || labelText
+            else if A_Index <= num_select_keys
+                labelText := SubStr(select_keys, A_Index, 1)
+            labelText := Format(UIStyle.label_format, labelText)
+            labelInfo := this.MeasureString(pGraphics, labelText, this.hFont, this.hFormat, &RC)
+            labelInfo.text := labelText
+            this.labelsInfoArray.Push(labelInfo)
+
+            candText := cands[A_Index].text
+            candInfo := this.MeasureString(pGraphics, candText, this.hFont, this.hFormat, &RC)
+            candInfo.text := candText
+            this.candsInfoArray.Push(candInfo)
+
+            commentText := cands[A_Index].comment
+            commentInfo := this.MeasureString(pGraphics, commentText, this.hFont, this.hFormat, &RC)
+            commentInfo.text := commentText
+            this.commentsInfoArray.Push(commentInfo)
+
+            rowSize := {
+                w: labelInfo.w + candInfo.w + (commentText ? this.padding * 2 + commentInfo.w : 0),
+                h: candInfo.h
+            }
+            this.candRowSizes.Push(rowSize)
+            if (rowSize.w > maxRowWidth) {
+                maxRowWidth := rowSize.w
+            }
+            totalHeight += candInfo.h + this.lineSpacing
+        }
+
+        ; get better spacing to align comments
+        Loop this.num_candidates {
+            this.commentsInfoArray[A_Index].spacing := maxRowWidth - this.labelsInfoArray[A_Index].w - this.candsInfoArray[A_Index].w - this.commentsInfoArray[A_Index].w
+        }
+
+        Gdip_DeleteGraphics(pGraphics)
+        ReleaseDC(hDC, this.gui.Hwnd)
+
+        this.boxWidth := Max((Ceil(maxRowWidth) + this.padding * 2 + this.borderWidth * 2), UIStyle.min_width)
+        this.boxHeight := Ceil(totalHeight) + this.padding * 2 + this.borderWidth * 2 - Round(this.lineSpacing / 2)
+        calcW := this.boxWidth
+        calcH := this.boxHeight
+    }
+
+    Show(x, y) {
+        if (this.gui && CandidateBox.isHidden) {
+            this.gui.Show("NA")
+            CandidateBox.isHidden := 0
+        }
+
+        this.hDC := CreateCompatibleDC()
+        this.hBitmap := CreateDIBSection(this.boxWidth, this.boxHeight)
+        this.oBitmap := SelectObject(this.hDC, this.hBitmap)
+        this.pGraphics := Gdip_GraphicsFromHDC(this.hDC)
+        Gdip_SetTextRenderingHint(this.pGraphics, AntiAliasGridFit := 3)
+        Gdip_SetSmoothingMode(this.pGraphics, AntiAlias := 4)
+
+        ; Draw border
+        if (this.borderWidth > 0) {
+            pBrushBorder := Gdip_BrushCreateSolid(this.borderColor)
+            this.FillRoundedRect(this.pGraphics, pBrushBorder, 0, 0, this.boxWidth, this.boxHeight, this.boxCornerR)
+            Gdip_DeleteBrush(pBrushBorder)
+        }
+
+        ; Draw background
+        pBrushBg := Gdip_BrushCreateSolid(this.backgroundColor)
+        bgX := this.borderWidth, bgY := this.borderWidth
+        bgW := this.boxWidth - this.borderWidth * 2
+        bgH := this.boxHeight - this.borderWidth * 2
+        bgCornerRadius := this.boxCornerR > this.borderWidth ? this.boxCornerR - this.borderWidth : 0
+        this.FillRoundedRect(this.pGraphics, pBrushBg, bgX, bgY, bgW, bgH, bgCornerRadius)
+        Gdip_DeleteBrush(pBrushBg)
+
+        ; Draw preedit
+        rectShrink := 2
+        currentY := this.padding + this.borderWidth
+        prdSelTxtRc := { x: this.padding + this.borderWidth, y: currentY, w: this.prdSelSize.w, h: this.prdSelSize.h }
+        prdHlSelTxtRc := { x: prdSelTxtRc.x + prdSelTxtRc.w + this.padding, y: currentY, w: this.prdHlSelSize.w, h: this.prdHlSelSize.h }
+        prdHlUnselTxtRc := { x: prdHlSelTxtRc.x + prdHlSelTxtRc.w, y: currentY, w: this.prdHlUnselSize.w, h: this.prdHlUnselSize.h }
+        this.DrawText(this.pGraphics, this.prdSelTxt, prdSelTxtRc, this.textColor)
+        pBrsh_hlSelBg := Gdip_BrushCreateSolid(this.hlBgColor)
+        Gdip_FillRoundedRectangle(this.pGraphics, pBrsh_hlSelBg, prdHlSelTxtRc.x - rectShrink, prdHlSelTxtRc.y, prdHlSelTxtRc.w, prdHlSelTxtRc.h - rectShrink, this.hlCornerR)
+        Gdip_DeleteBrush(pBrsh_hlSelBg)
+        this.DrawText(this.pGraphics, this.prdHlSelTxt, prdHlSelTxtRc, this.hlTxtColor)
+        this.DrawText(this.pGraphics, this.prdHlUnselTxt, prdHlUnselTxtRc, this.textColor)
+        currentY += this.prdSelSize.h + this.lineSpacing
+
+        ; Draw candidates
+        Loop this.num_candidates {
+            rowSize := this.candRowSizes[A_Index]
+            labelFg := this.labelColor
+            candFg := this.candTxtColor
+            commentFg := this.commentTxtColor
+            if (A_Index == this.hilited_index) { ; Draw highlight if selected
+                labelFg := this.hlLabelColor
+                candFg := this.hlCandTxtColor
+                commentFg := this.hlCommentTxtColor
+                pBrsh_hlCandBg := Gdip_BrushCreateSolid(this.hlCandBgColor)
+                highlightX := this.borderWidth + this.padding / 2
+                highlightY := currentY - this.lineSpacing / 2
+                highlightW := this.boxWidth - this.borderWidth * 2 - this.padding
+                highlightH := rowSize.h + this.lineSpacing - rectShrink
+                Gdip_FillRoundedRectangle(this.pGraphics, pBrsh_hlCandBg, highlightX, highlightY, highlightW, highlightH, this.hlCornerR)
+                Gdip_DeleteBrush(pBrsh_hlCandBg)
+            }
+
+            labelRect := { x: this.padding + this.borderWidth, y: currentY, w: this.labelsInfoArray[A_Index].w, h: rowSize.h }
+            candRect := { x: labelRect.x + labelRect.w, y: currentY, w: this.candsInfoArray[A_Index].w, h: rowSize.h }
+            this.DrawText(this.pGraphics, this.labelsInfoArray[A_Index].text, labelRect, labelFg)
+            this.DrawText(this.pGraphics, this.candsInfoArray[A_Index].text, candRect, candFg)
+
+            commentW := this.commentsInfoArray[A_Index].w
+            if commentW > 0 {
+                commentRect := { x: candRect.x + candRect.w + this.commentsInfoArray[A_Index].spacing, y: currentY, w: commentW, h: rowSize.h }
+                this.DrawText(this.pGraphics, this.commentsInfoArray[A_Index].text, commentRect, commentFg)
+            }
+
+            currentY += rowSize.h + this.lineSpacing
+        }
+
+        UpdateLayeredWindow(this.gui.Hwnd, this.hDC, x, y, this.boxWidth, this.boxHeight)
+
+        this.ReleaseDrawingSurface()
+    }
+
+    Hide() {
+        if (this.gui && !CandidateBox.isHidden) {
+            this.gui.Show("Hide")
+            CandidateBox.isHidden := 1
+        }
+    }
+
+    ReleaseFont() {
+        if (this.hFont)
+            Gdip_DeleteFont(this.hFont)
+        if (this.hFamily)
+            Gdip_DeleteFontFamily(this.hFamily)
+        if (this.hFormat)
+            Gdip_DeleteStringFormat(this.hFormat)
+    }
+
+    ReleaseDrawingSurface() {
+        if (this.pGraphics) {
+            Gdip_DeleteGraphics(this.pGraphics)
+            this.pGraphics := 0
+        }
+        if (this.hBitmap) {
+            DeleteObject(this.hBitmap)
+            this.hBitmap := 0
+        }
+        if (this.hDC) {
+            SelectObject(this.hDC, this.oBitmap)
+            DeleteDC(this.hDC)
+            this.hDC := 0
+        }
+    }
+
+    ReleaseAll() {
+        this.ReleaseFont()
+        this.ReleaseDrawingSurface()
+
+        if (this.pToken) {
+            Gdip_Shutdown(this.pToken)
+            this.pToken := 0
+        }
+        if (this.gui) {
+            this.gui.Destroy()
+        }
+    }
+
+    MeasureString(pGraphics, text, hFont, hFormat, &RectF) {
+        if !text
+            return { w: 0, h: 32 }
+
+        rc := Buffer(16)
+        ; !Notice, this way gets incorrect dim in test
+        ; dim := Gdip_MeasureString(pGraphics, text, hFont, hFormat, &rc)
+        ; rect := StrSplit(dim, "|")
+        ; return { w: Round(rect[3]), h: Round(rect[4]) }
+
+        DllCall("gdiplus\GdipMeasureString",
+            "Ptr", pGraphics,
+            "WStr", text,
+            "Int", -1,
+            "Ptr", hFont,
+            "Ptr", RectF.Ptr,
+            "Ptr", hFormat,
+            "Ptr", rc.Ptr,
+            "UInt*", 0,
+            "UInt*", 0,
+            "Int")
+
+        return { w: NumGet(rc.Ptr, 8, "Float"), h: NumGet(rc.Ptr, 12, "Float") }
+    }
+
+    DrawText(pGraphics, text, textRect, color) {
+        this.pBrush := Gdip_BrushCreateSolid(color)
+        CreateRectF(&RC, textRect.x, textRect.y, textRect.w, textRect.h)
+        Gdip_DrawString(pGraphics, text, this.hFont, this.hFormat, this.pBrush, &RC)
+        Gdip_DeleteBrush(this.pBrush)
+    }
+
+    FillRoundedRect(pGraphics, pBrush, x, y, w, h, r) {
+        if (r <= 0) {
+            Gdip_FillRectangle(pGraphics, pBrush, x, y, w, h)
+        } else {
+            Gdip_FillRoundedRectangle(pGraphics, pBrush, x, y, w, h, r)
+        }
+    }
+}
+
+/*
 class CandidateBox {
     static dbg := false
     static gui := 0
@@ -323,8 +638,9 @@ class CandidateBox {
         }
     }
 }
+*/
 
-GetCompositionText(&composition, &pre_selected, &selected, &post_selected) {
+GetCompositionText(composition, &pre_selected, &selected, &post_selected) {
     pre_selected := ""
     selected := ""
     post_selected := ""
