@@ -227,7 +227,8 @@ class CandidatePreview {
 }
 
 class ThemesGUI {
-	__New() {
+	__New(result) {
+		this.result := result
 		this.preset_color_schemes := Map()
 		this.colorSchemeMap := Map()
 		this.previewFontName := UIStyle.font_face
@@ -316,7 +317,7 @@ class ThemesGUI {
 			rime.config_set_string(config, "style/font_face", this.previewFontName)
 			UIStyle.Update(config, init := true)
 			rime.config_close(config)
-			box.UpdateUIStyle()
+			this.result.yes := true
 		}
 
 		this.gui.Hide()

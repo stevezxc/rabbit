@@ -36,6 +36,7 @@ class CandidateBox {
     oBitmap := 0
     pGraphics := 0
     hFont := 0
+    hFamily := 0
     hFormat := 0
 
     static isHidden := 1

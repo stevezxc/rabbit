@@ -24,6 +24,7 @@
 
 #Include <RabbitCommon>
 #Include <RabbitTrayMenu>
+#Include <RabbitThemesUI>
 
 ;@Ahk2Exe-SetMainIcon Lib\rabbit-alt.ico
 global IN_MAINTENANCE := true
@@ -110,6 +111,24 @@ ConfigureSwitcher(levers, switcher_settings, &reconfigured) {
     return false
 }
 
+ConfigureUI(&reconfigured) {
+    if !IsSet(reconfigured)
+        reconfigured := false
+    result := {
+        yes : false
+    }
+    dialog := ThemesGUI(result)
+    dialog.Show()
+    WinWaitClose(dialog.gui)
+
+    if result.yes {
+        ; settings already saved
+        reconfigured := true
+        return true
+    }
+    return false
+}
+
 class Configurator extends Class {
     __New() {
         CreateFileIfNotExist("default.custom.yaml")
@@ -130,10 +149,14 @@ class Configurator extends Class {
 
         switcher_settings := levers.switcher_settings_init()
         skip_switcher_settings := installing && !levers.is_first_run(switcher_settings)
+        skip_ui_style_settings := installing ; TODO: do we need to check first run?
 
         if !skip_switcher_settings {
-            ConfigureSwitcher(levers, switcher_settings, &reconfigured)
+            if !ConfigureSwitcher(levers, switcher_settings, &reconfigured)
+                skip_ui_style_settings := true ; user cancelled
         }
+        if !skip_ui_style_settings
+            ConfigureUI(&reconfigured)
 
         levers.custom_settings_destroy(switcher_settings)
 
