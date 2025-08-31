@@ -105,6 +105,8 @@ CreateTraits() {
 }
 
 RabbitUserDataPath() {
+    if FileExist(A_ScriptDir . "\.portable")
+        return A_ScriptDir . "\Rime"
     try {
         local dir := RegRead("HKEY_CURRENT_USER\Software\Rime\Rabbit", "RimeUserDir")
     }
