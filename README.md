@@ -70,6 +70,7 @@ rabbit/
 - [GetCaretPos](https://github.com/Descolada/AHK-v2-libraries)
 - [GetCaretPosEx](https://github.com/Tebayaki/AutoHotkeyScripts/tree/main/lib/GetCaretPosEx)
 - [东风破](https://github.com/rime/plum)
+- [小狼毫](https://github.com/rime/weasel)
 
 以及一些代码片段，在注释中注明了来源链接
 

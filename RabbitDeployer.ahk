@@ -111,19 +111,22 @@ ConfigureSwitcher(levers, switcher_settings, &reconfigured) {
     return false
 }
 
-ConfigureUI(&reconfigured) {
+ConfigureUI(levers, ui_style_settings, &reconfigured) {
     if !IsSet(reconfigured)
         reconfigured := false
+    local settings := ui_style_settings.settings
+    if !levers.load_settings(settings)
+        return false
     result := {
         yes : false
     }
-    dialog := ThemesGUI(result)
+    dialog := UIStyleSettingsDialog(ui_style_settings, result)
     dialog.Show()
-    WinWaitClose(dialog.gui)
+    WinWaitClose(dialog)
 
     if result.yes {
-        ; settings already saved
-        reconfigured := true
+        if levers.save_settings(settings)
+            reconfigured := true
         return true
     }
     return false
@@ -148,15 +151,16 @@ class Configurator extends Class {
             return 1
 
         switcher_settings := levers.switcher_settings_init()
+        ui_style_settings := UIStyleSettings()
         skip_switcher_settings := installing && !levers.is_first_run(switcher_settings)
-        skip_ui_style_settings := installing ; TODO: do we need to check first run?
+        skip_ui_style_settings := installing && !levers.is_first_run(ui_style_settings.settings)
 
         if !skip_switcher_settings {
             if !ConfigureSwitcher(levers, switcher_settings, &reconfigured)
                 skip_ui_style_settings := true ; user cancelled
         }
         if !skip_ui_style_settings
-            ConfigureUI(&reconfigured)
+            ConfigureUI(levers, ui_style_settings, &reconfigured)
 
         levers.custom_settings_destroy(switcher_settings)
 
@@ -392,6 +396,7 @@ class SwitcherSettingsDialog extends Gui {
         this.hotkeys := this.AddEdit("-Multi ReadOnly r1 w505")
         this.proxy_prompt := this.AddText("XS", "代理服务器：")
         this.proxy := this.AddEdit("X+10 -Multi r1 w300")
+        DllCall("SendMessage", "Ptr", this.proxy.Hwnd, "UInt", EM_SETCUEBANNER := 0x1501, "UPtr", true, "WStr", "如 http://127.0.0.1:7890", "Ptr")
         this.use_git := this.AddCheckbox("X+20", "使用 Git")
         this.use_git.Value := 1
         this.more_schemas := this.AddButton("XS w155", "获取更多输入方案…")
@@ -507,6 +512,149 @@ class SwitcherSettingsDialog extends Gui {
         WinActivate("ahk_id " this.Hwnd)
         this.api.load_settings(this.settings)
         this.Populate()
+    }
+
+    Exit(yes) {
+        this.result.yes := yes
+        this.Destroy()
+    }
+}
+
+class UIStyleSettings {
+    __New() {
+        this.api := RimeLeversApi()
+        this.settings := this.api.custom_settings_init("rabbit", "Rabbit.UIStyleSettings")
+    }
+
+    GetPresetColorSchemes() {
+        global rime
+        local result := []
+        if !config := this.api.settings_get_config(this.settings)
+            return result
+        if !rime || !preset := rime.config_begin_map(config, "preset_color_schemes")
+            return result
+        while rime.config_next(preset) {
+            local name_key := preset.path . "/name"
+            if !name := rime.config_get_cstring(config, name_key)
+                continue
+            local author_key := preset.path . "/author"
+            local author := rime.config_get_cstring(config, author_key)
+            UIStyle.UpdateColor(config, StrLower(preset.key))
+            result.Push({
+                color_scheme_id: preset.key,
+                name: name,
+                author: author,
+                border_color: UIStyle.border_color,
+                text_color: UIStyle.text_color,
+                back_color: UIStyle.back_color,
+                hilited_text_color: UIStyle.hilited_text_color,
+                hilited_back_color: UIStyle.hilited_back_color,
+                hilited_candidate_text_color: UIStyle.hilited_candidate_text_color,
+                hilited_candidate_back_color: UIStyle.hilited_candidate_back_color,
+                candidate_text_color: UIStyle.candidate_text_color,
+                candidate_back_color: UIStyle.candidate_back_color,
+                font_face: UIStyle.font_face,
+                font_point: UIStyle.font_point,
+            })
+        }
+        return result
+    }
+
+    GetActiveColorScheme() {
+        global rime
+        if !config := this.api.settings_get_config(this.settings)
+            return ""
+        if !rime || !value := rime.config_get_cstring(config, "style/color_scheme")
+            return ""
+        return value
+    }
+
+    SelectColorScheme(color_scheme_id) {
+        this.api.customize_string(this.settings, "style/color_scheme", color_scheme_id)
+        return true
+    }
+}
+
+class UIStyleSettingsDialog extends Gui {
+    __New(settings, result) {
+        super.__New("-MaximizeBox -MinimizeBox", "【玉兔毫】界面风格设定", this)
+        this.settings := settings
+        this.loaded := false
+        this.api := RimeLeversApi()
+
+        this.preset := []
+        this.result := result
+
+        ; Layout
+        this.MarginX := 15
+        this.MarginY := 15
+        this.color_schemes_width := 220
+        this.preview_width := 220
+        this.preview_offset := 20
+        this.AddText("x10 y10", "主题：").GetPos(, , , &h)
+        this.title_height := h
+        this.color_schemes := this.AddListBox(Format("Section r15 w{} -Multi", this.color_schemes_width))
+        this.color_schemes.OnEvent("Change", (ctrl, info) => this.OnColorSchemeSelChange())
+        this.color_schemes.GetPos(, , , &h)
+        this.list_height := h
+        this.AddGroupBox(Format("x+{} yp-8 w{} h{}", this.preview_offset, this.preview_width, this.list_height + 8), "预览")
+        ; 0xE(SS_BITMAP) or 0x4E (Bitmap and Resizable, but text is unclear)
+        this.preview_img := this.AddPicture("xp+50 yp+50 w180 h180 0xE BackgroundWhite")
+
+        this.set_font := this.AddButton(Format("xs ys+{} w120", this.list_height + this.MarginY), "设置字体")
+        this.set_font.Opt("+Disabled") ; TODO: implement font setting
+        this.ok := this.AddButton("x+180 w90", "中")
+        this.ok.OnEvent("Click", (*) => this.OnOK())
+
+        this.Populate()
+    }
+
+    Populate() {
+        if !this.settings
+            return
+        local active := this.settings.GetActiveColorScheme()
+        local active_index := 0
+        this.preset := this.settings.GetPresetColorSchemes()
+        local names := []
+        for i, info in this.preset {
+            names.Push(info.name)
+            if info.color_scheme_id = active
+                active_index := i
+        }
+        this.color_schemes.Opt("-Redraw")
+        this.color_schemes.Add(names)
+        this.color_schemes.Opt("+Redraw")
+        if active_index > 0 {
+            this.color_schemes.Choose(active_index)
+            this.Preview(active_index)
+        }
+        this.loaded := true
+    }
+
+    OnColorSchemeSelChange() {
+        local index := this.color_schemes.Value
+        if index > 0 && index <= this.preset.Length {
+            this.settings.SelectColorScheme(this.preset[index].color_scheme_id)
+            this.Preview(index)
+        }
+        return 0
+    }
+
+    Preview(index) {
+        if index <= 0 || index > this.preset.Length
+            return
+        local info := this.preset[index]
+        local candidate_box := CandidatePreview(this.preview_img, info, &box_width, &box_height)
+        box_width := box_width / candidate_box.dpiSacle
+        box_height := box_height / candidate_box.dpiSacle
+        local box_x := this.MarginX + this.color_schemes_width + this.preview_offset + Round((this.preview_width - box_width) / 2)
+        local box_y := this.MarginY + this.title_height + 8 + Round((this.list_height - box_height) / 2)
+        this.preview_img.Move(box_x, box_y, box_width, box_height)
+        candidate_box.Render(["输入法", "输入", "数", "书", "输"], 1)
+    }
+
+    OnOK() {
+        this.Exit(true)
     }
 
     Exit(yes) {
