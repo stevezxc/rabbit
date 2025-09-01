@@ -204,7 +204,7 @@ class CandidateBox {
 
         ; Draw preedit
         rectShrink := 2
-        currentY := this.padding + this.borderWidth
+        currentY := this.lineSpacing + this.borderWidth
         prdSelTxtRc := { x: this.padding + this.borderWidth, y: currentY, w: this.prdSelSize.w, h: this.prdSelSize.h }
         prdHlSelTxtRc := { x: prdSelTxtRc.x + prdSelTxtRc.w + this.padding, y: currentY, w: this.prdHlSelSize.w, h: this.prdHlSelSize.h }
         prdHlUnselTxtRc := { x: prdHlSelTxtRc.x + prdHlSelTxtRc.w, y: currentY, w: this.prdHlUnselSize.w, h: this.prdHlUnselSize.h }
@@ -214,7 +214,7 @@ class CandidateBox {
         Gdip_DeleteBrush(pBrsh_hlSelBg)
         this.DrawText(this.pGraphics, this.prdHlSelTxt, prdHlSelTxtRc, this.hlTxtColor)
         this.DrawText(this.pGraphics, this.prdHlUnselTxt, prdHlUnselTxtRc, this.textColor)
-        currentY += this.prdSelSize.h + this.lineSpacing
+        currentY += this.prdHlSelSize.h + this.lineSpacing
 
         ; Draw candidates
         Loop this.num_candidates {
