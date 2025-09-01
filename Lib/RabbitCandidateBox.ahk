@@ -167,7 +167,12 @@ class CandidateBox {
         Gdip_DeleteGraphics(pGraphics)
         ReleaseDC(hDC, this.gui.Hwnd)
 
-        this.boxWidth := Max((Ceil(maxRowWidth) + this.padding * 2 + this.borderWidth * 2), UIStyle.min_width)
+        this.commentOffset := 0
+        this.boxWidth := Ceil(maxRowWidth) + this.padding * 2 + this.borderWidth * 2
+        if this.boxWidth < UIStyle.min_width {
+            this.commentOffset := UIStyle.min_width - this.boxWidth
+            this.boxWidth := UIStyle.min_width
+        }
         this.boxHeight := Ceil(totalHeight) + this.padding * 2 + this.borderWidth * 2 - Round(this.lineSpacing / 2)
         calcW := this.boxWidth
         calcH := this.boxHeight
@@ -242,7 +247,7 @@ class CandidateBox {
 
             commentW := this.commentsInfoArray[A_Index].w
             if commentW > 0 {
-                commentRect := { x: candRect.x + candRect.w + this.commentsInfoArray[A_Index].spacing, y: currentY, w: commentW, h: rowSize.h }
+                commentRect := { x: candRect.x + candRect.w + this.commentsInfoArray[A_Index].spacing + this.commentOffset, y: currentY, w: commentW, h: rowSize.h }
                 this.DrawText(this.pGraphics, this.commentsInfoArray[A_Index].text, commentRect, commentFg)
             }
 
