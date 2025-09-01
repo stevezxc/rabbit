@@ -21,7 +21,6 @@
 #Include <RabbitThemesUI>
 #Include <Gdip/Gdip_All>
 
-global LVM_GETCOLUMNWIDTH := 0x101D
 ; https://learn.microsoft.com/windows/win32/winmsg/extended-window-styles
 global WS_EX_NOACTIVATE := "+E0x8000000"
 global WS_EX_COMPOSITED := "+E0x02000000"
@@ -104,8 +103,9 @@ class CandidateBox {
         this.candsInfoArray := []
         this.commentsInfoArray := []
 
+        local em2pt := 96.0 / 72.0
         this.hFamily := Gdip_FontFamilyCreate(this.fontName)
-        this.hFont := Gdip_FontCreate(this.hFamily, this.fontSize * this.dpiSacle, regular := 0)
+        this.hFont := Gdip_FontCreate(this.hFamily, this.fontSize * em2pt * this.dpiSacle, regular := 0)
         this.hFormat := Gdip_StringFormatCreate(0x0001000 | 0x0004000) ; nowrap and noclip
         Gdip_SetStringFormatAlign(this.hFormat, left := 0) ; left:0, center:1, right:2
 
