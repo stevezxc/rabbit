@@ -214,9 +214,11 @@ class CandidateBox {
         prdHlSelTxtRc := { x: prdSelTxtRc.x + prdSelTxtRc.w + this.padding, y: currentY, w: this.prdHlSelSize.w, h: this.prdHlSelSize.h }
         prdHlUnselTxtRc := { x: prdHlSelTxtRc.x + prdHlSelTxtRc.w, y: currentY, w: this.prdHlUnselSize.w, h: this.prdHlUnselSize.h }
         this.DrawText(this.pGraphics, this.prdSelTxt, prdSelTxtRc, this.textColor)
-        pBrsh_hlSelBg := Gdip_BrushCreateSolid(this.hlBgColor)
-        Gdip_FillRoundedRectangle(this.pGraphics, pBrsh_hlSelBg, prdHlSelTxtRc.x - rectShrink, prdHlSelTxtRc.y, prdHlSelTxtRc.w, prdHlSelTxtRc.h - rectShrink, this.hlCornerR)
-        Gdip_DeleteBrush(pBrsh_hlSelBg)
+        if this.prdHlSelTxt {
+            pBrsh_hlSelBg := Gdip_BrushCreateSolid(this.hlBgColor)
+            Gdip_FillRoundedRectangle(this.pGraphics, pBrsh_hlSelBg, prdHlSelTxtRc.x - rectShrink, prdHlSelTxtRc.y, prdHlSelTxtRc.w, prdHlSelTxtRc.h - rectShrink, this.hlCornerR)
+            Gdip_DeleteBrush(pBrsh_hlSelBg)
+        }
         this.DrawText(this.pGraphics, this.prdHlSelTxt, prdHlSelTxtRc, this.hlTxtColor)
         this.DrawText(this.pGraphics, this.prdHlUnselTxt, prdHlUnselTxtRc, this.textColor)
         currentY += this.prdHlSelSize.h + this.lineSpacing
