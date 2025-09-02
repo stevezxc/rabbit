@@ -161,8 +161,9 @@ class CandidateBox {
             if (rowSize.w > maxRowWidth) {
                 maxRowWidth := rowSize.w
             }
-            totalHeight += candInfo.h + this.lineSpacing
+            totalHeight += rowSize.h + this.lineSpacing
         }
+        totalHeight -= this.lineSpacing ; remove extra line spacing
 
         ; get better spacing to align comments
         Loop this.num_candidates {
