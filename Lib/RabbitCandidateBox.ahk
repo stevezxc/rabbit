@@ -126,7 +126,7 @@ class CandidateBox {
         ; Measure candidate texts
         this.candRowSizes := []
         maxRowWidth := this.prdSelSize.w + this.padding + this.prdHlSelSize.w + this.prdHlUnselSize.w
-        totalHeight := this.prdHlSelSize.h + this.lineSpacing
+        totalHeight := Max(this.prdSelSize.h, this.prdHlSelSize.h, this.prdHlUnselSize.h) + this.lineSpacing
 
         has_label := !!context.select_labels[0]
         select_keys := menu.select_keys
@@ -226,7 +226,7 @@ class CandidateBox {
         }
         this.DrawText(this.pGraphics, this.mainFontObj, this.prdHlSelTxt, prdHlSelTxtRc, this.hlTxtColor)
         this.DrawText(this.pGraphics, this.mainFontObj, this.prdHlUnselTxt, prdHlUnselTxtRc, this.textColor)
-        currentY += this.prdHlSelSize.h + this.lineSpacing
+        currentY += Max(this.prdSelSize.h, this.prdHlSelSize.h, this.prdHlUnselSize.h) + this.lineSpacing
 
         ; Draw candidates
         Loop this.num_candidates {
@@ -316,7 +316,7 @@ class CandidateBox {
 
     MeasureString(pGraphics, text, hFont, hFormat, &RectF) {
         if !text
-            return { w: 0, h: 32 }
+            return { w: 0, h: 0 }
 
         rc := Buffer(16)
         ; !Notice, this way gets incorrect dim in test
