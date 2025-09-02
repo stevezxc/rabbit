@@ -192,9 +192,6 @@ jobs:
             rime-install.bat
 
   create-nightly:
-    strategy:
-      matrix:
-        target: [ x86, x64 ]
     name: Create Nightly release
     if: ${{ github.ref == 'refs/heads/master' }}
     runs-on: ubuntu-latest
@@ -203,16 +200,27 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Download Artifacts
+      - name: Download x64
         uses: actions/download-artifact@v4
         with:
-          name: Rabbit-Full-${{ matrix.target }}
-          path: release
+          name: Rabbit-Full-x64
+          path: x64
 
-      - name: Pack Zip
-        working-directory: release
+      - name: Pack x64
+        working-directory: x64
         run: |
-          mkdir Rime && zip -r -q ../rabbit-nightly-${{ matrix.target }}.zip *
+          mkdir Rime && zip -r -q ../rabbit-nightly-x64.zip *
+
+      - name: Download x86
+        uses: actions/download-artifact@v4
+        with:
+          name: Rabbit-Full-x86
+          path: x86
+
+      - name: Pack x86
+        working-directory: x86
+        run: |
+          mkdir Rime && zip -r -q ../rabbit-nightly-x86.zip *
 
       - name: Upload Nightly
         uses: marvinpinto/action-automatic-releases@latest
@@ -222,7 +230,8 @@ jobs:
           prerelease: true
           title: "Nightly"
           files: |
-            rabbit-nightly-${{ matrix.target }}.zip
+            rabbit-nightly-x64.zip
+            rabbit-nightly-x86.zip
 
   create-release:
     name: Create Release
