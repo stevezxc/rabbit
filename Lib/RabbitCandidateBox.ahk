@@ -243,6 +243,7 @@ class CandidateBox {
         this.DrawText(this.pGraphics, this.mainFontHs, this.prdHlSelTxt, prdHlSelTxtRc, this.hlTxtColor)
         this.DrawText(this.pGraphics, this.mainFontHs, this.prdHlUnselTxt, prdHlUnselTxtRc, this.textColor)
 
+        hiliteW := this.boxWidth - this.borderWidth * 2 - this.padding * 2
         ; Draw candidates
         Loop this.num_candidates {
             rowRect := this.candidatesLayout.rows[A_Index]
@@ -254,7 +255,7 @@ class CandidateBox {
                 candFg := this.hlCandTxtColor
                 commentFg := this.hlCommentTxtColor
                 pBrsh_hlCandBg := Gdip_BrushCreateSolid(this.hlCandBgColor)
-                Gdip_FillRoundedRectangle(this.pGraphics, pBrsh_hlCandBg, rowRect.x, rowRect.y, this.maxRowWidth, rowRect.h, this.hlCornerR)
+                Gdip_FillRoundedRectangle(this.pGraphics, pBrsh_hlCandBg, rowRect.x, rowRect.y, hiliteW, rowRect.h, this.hlCornerR)
                 Gdip_DeleteBrush(pBrsh_hlCandBg)
             }
 
