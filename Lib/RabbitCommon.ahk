@@ -105,8 +105,10 @@ CreateTraits() {
 }
 
 RabbitUserDataPath() {
-    if FileExist(A_ScriptDir . "\.portable")
+    if FileExist(A_ScriptDir . "\.portable") {
+        RabbitDebug("run in portable mode.", Format("RabbitCommon.ahk:{}", A_LineNumber), 1)
         return A_ScriptDir . "\Rime"
+    }
     try {
         local dir := RegRead("HKEY_CURRENT_USER\Software\Rime\Rabbit", "RimeUserDir")
     }
@@ -172,4 +174,34 @@ CleanOldLogs() {
             FileDelete(file)
         }
     }
+}
+
+RabbitLog(text) {
+    try {
+        FileAppend(text, "*", "UTF-8")
+    }
+}
+RabbitLogLimit(text, label, limit := 1) {
+    static labels := Map()
+    if !labels.Has(label)
+        labels[label] := 0
+    if limit < 0 || labels[label] < limit {
+        RabbitLog(text)
+        labels[label] := labels[label] + 1
+    }
+}
+RabbitError(text, location, limit := -1) {
+    msg := Format("E{} {:5} {}] {}`r`n", FormatTime(, "yyyyMMDD HH:mm:ss       "), ProcessExist(), location, text)
+    RabbitLogLimit(msg, location, limit)
+}
+RabbitInfo(text, location, limit := -1) {
+    msg := Format("I{} {:5} {}] {}`r`n", FormatTime(, "yyyyMMDD HH:mm:ss       "), ProcessExist(), location, text)
+    RabbitLogLimit(msg, location, limit)
+}
+RabbitDebug(text, location, limit := -1) {
+    global RABBIT_VERSION
+    if !SubStr(RABBIT_VERSION, 1, 3) = "dev"
+        return
+    msg := Format("D{} {:5} {}] {}`r`n", FormatTime(, "yyyyMMDD HH:mm:ss       "), ProcessExist(), location, text)
+    RabbitLogLimit(msg, location, limit)
 }
