@@ -445,10 +445,12 @@ class CandidateBox {
             arr := []
             i := 1, len := StrLen(str)
 
-            ; only keep first codepoint in pair
-            if (i <= len) {
+            ; skip ZWJ, VS15/VS16 as GDI does not support color fonts
+            while (i <= len) {
                 cp := Ord(SubStr(str, i, 1))
-                if (cp >= 0xD800 && cp <= 0xDBFF && i < len) {
+                if (cp = 0x200D or cp = 0xFE0F or cp = 0xFE0E) {
+                    i++
+                } else if cp >= 0xD800 && cp <= 0xDBFF && i < len {
                     low := Ord(SubStr(str, i + 1, 1))
                     if (low >= 0xDC00 && low <= 0xDFFF) {
                         arr.Push(Chr(0x10000 + ((cp - 0xD800) << 10) + (low - 0xDC00)))
@@ -460,23 +462,6 @@ class CandidateBox {
                 } else {
                     arr.Push(Chr(cp))
                     i++
-                }
-            }
-
-            ; skip ZWJ, VS15/VS16
-            while (i <= len) {
-                cp := Ord(SubStr(str, i, 1))
-                if (cp = 0x200D or cp = 0xFE0F or cp = 0xFE0E) {
-                    i++
-                    if (i <= len) {
-                        cp2 := Ord(SubStr(str, i, 1))
-                        if (cp2 >= 0xD800 && cp2 <= 0xDBFF && i < len)
-                            i += 2
-                        else
-                            i++
-                    }
-                } else {
-                    break
                 }
             }
 
