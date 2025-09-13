@@ -191,17 +191,17 @@ RabbitLogLimit(text, label, limit := 1) {
     }
 }
 RabbitError(text, location, limit := -1) {
-    msg := Format("E{} {:5} {}] {}`r`n", FormatTime(, "yyyyMMDD HH:mm:ss       "), ProcessExist(), location, text)
+    msg := Format("E{} {:5} {}] {}`r`n", FormatTime(, "yyyyMMdd HH:mm:ss       "), ProcessExist(), location, text)
     RabbitLogLimit(msg, location, limit)
 }
 RabbitInfo(text, location, limit := -1) {
-    msg := Format("I{} {:5} {}] {}`r`n", FormatTime(, "yyyyMMDD HH:mm:ss       "), ProcessExist(), location, text)
+    msg := Format("I{} {:5} {}] {}`r`n", FormatTime(, "yyyyMMdd HH:mm:ss       "), ProcessExist(), location, text)
     RabbitLogLimit(msg, location, limit)
 }
 RabbitDebug(text, location, limit := -1) {
     global RABBIT_VERSION
     if !SubStr(RABBIT_VERSION, 1, 3) = "dev"
         return
-    msg := Format("D{} {:5} {}] {}`r`n", FormatTime(, "yyyyMMDD HH:mm:ss       "), ProcessExist(), location, text)
+    msg := Format("D{} {:5} {}] {}`r`n", FormatTime(, "yyyyMMdd HH:mm:ss       "), ProcessExist(), location, text)
     RabbitLogLimit(msg, location, limit)
 }
