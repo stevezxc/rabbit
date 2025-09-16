@@ -6,27 +6,28 @@
 [![Build Status](https://github.com/rimeinn/rabbit/actions/workflows/ci.yaml/badge.svg)](https://github.com/rimeinn/rabbit/actions/workflows/ci.yaml)
 [![Telegram Group Chat](https://telegram-badge.vercel.app/api/telegram-badge?channelId=@rime_rabbit)](https://t.me/rime_rabbit)
 [![License](https://img.shields.io/github/license/rimeinn/rabbit)](LICENSE)
-![GitHub Repo stars](https://img.shields.io/github/stars/rimeinn/rabbit?style=flat)
+[![GitHub Repo stars](https://img.shields.io/github/stars/rimeinn/rabbit?style=flat)](https://github.com/rimeinn/rabbit/stargazers)
 
 ## 下载体验
 
 > [!NOTE]
 > 发现程序漏洞请在 [Issues](https://github.com/rimeinn/rabbit/issues/new/choose) 反馈。使用问题可以在 [Discussions](https://github.com/rimeinn/rabbit/discussions) 讨论，或者加入 [Telegram 群聊](https://t.me/rime_rabbit)。
 
-### Release 版
+### 通过发布页面下载
 
-发行版会在 [Release 页面](https://github.com/rimeinn/rabbit/releases) 的 Assets 中，下载最新的 `rabbit-v<版本号>.zip`，解压到一个新建文件夹，运行 `Rabbit.exe` 即可。
+正式发行版会在 [Release 页面](https://github.com/rimeinn/rabbit/releases) 的 Assets 中，下载最新的 `rabbit-v<版本号>.zip`，解压到一个新建文件夹，运行 `Rabbit.exe` 即可。
 
-#### 通过 [scoop](https://scoop.sh/) 安装
+每夜构建版可在 [`latest`](https://github.com/rimeinn/rabbit/releases/tag/latest) 页面下载。
+
+### 通过 [scoop](https://scoop.sh/) 安装
 
 ```PowerShell
 scoop bucket add siku https://github.com/amorphobia/siku
+# 正式发行版
 scoop install siku/rabbit
+# 每夜构建版
+scoop install siku/rabbit-nightly
 ```
-
-### 每夜构建版本 (Nightly)
-
-每夜构建版本可在 [`latest` 标签](https://github.com/rimeinn/rabbit/releases/tag/latest)页面下载。
 
 ## 脚本编译
 
@@ -35,6 +36,9 @@ scoop install siku/rabbit
 编译并使用 `upx` 压缩后，64 位的可执行文件大小可减少为 `Rabbit.exe` - 约 570+ KB, `RabbitDeployer.exe` - 约 560+ KB。
 
 ## 目录结构
+
+<details>
+<summary>点击展开</summary>
 
 > [!NOTE]
 > 以下描述的*可删除*、*编译后可删除*指的是删除后不影响使用，若要再次分发脚本或编译后的可执行文件，需遵守 [GPL-3.0 开源许可](LICENSE)。
@@ -56,6 +60,8 @@ rabbit/
 ├─ README.md            本文件，可删除
 ├─ rime-install.bat     东风破批处理脚本，删除后无法从设定中调用东风破
 ```
+
+</details>
 
 ## 使用的开源项目
 
