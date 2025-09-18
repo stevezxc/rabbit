@@ -155,7 +155,8 @@ jobs:
         with:
           name: Rabbit-${{ matrix.target }}
           path: |
-            Lib/Gdip/Gdip_All.ahk
+            Lib/Direct2D/Direct2D.ahk
+            Lib/Direct2D/LICENSE
             Lib/librime-ahk/*.ahk
             Lib/librime-ahk/rime.dll
             Lib/librime-ahk/utils
@@ -176,7 +177,8 @@ jobs:
           name: Rabbit-Full-${{ matrix.target }}
           path: |
             Data
-            Lib/Gdip/Gdip_All.ahk
+            Lib/Direct2D/Direct2D.ahk
+            Lib/Direct2D/LICENSE
             Lib/librime-ahk/*.ahk
             Lib/librime-ahk/rime.dll
             Lib/librime-ahk/utils

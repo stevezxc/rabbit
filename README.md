@@ -40,7 +40,6 @@ scoop install siku/rabbit-nightly
 <details>
 <summary>点击展开</summary>
 
-> [!NOTE]
 > 以下描述的*可删除*、*编译后可删除*指的是删除后不影响使用，若要再次分发脚本或编译后的可执行文件，需遵守 [GPL-3.0 开源许可](LICENSE)。
 
 ```
@@ -66,9 +65,10 @@ rabbit/
 ## 使用的开源项目
 
 - [librime](https://github.com/rime/librime)
-- [OpenCC](https://github.com/BYVoid/OpenCC)
-- [AHKv2-Gdip](https://github.com/buliasz/AHKv2-Gdip)
 - [librime-ahk](https://github.com/rimeinn/librime-ahk)
+- [AHK-Direct2D](https://github.com/rawbx/AHK-Direct2D)
+- [OpenCC](https://github.com/BYVoid/OpenCC)
+- ~~[AHKv2-Gdip](https://github.com/buliasz/AHKv2-Gdip)~~
 - [GetCaretPos](https://github.com/Descolada/AHK-v2-libraries)
 - [GetCaretPosEx](https://github.com/Tebayaki/AutoHotkeyScripts/tree/main/lib/GetCaretPosEx)
 - [东风破](https://github.com/rime/plum)
