@@ -166,7 +166,7 @@ class CandidateBox {
 
             if comment.w > 0 {
                 alignCommentGap := maxRowWidth - labelW - candW - comment.w - this.padding
-                comment.x += alignCommentGap
+                comment.x += alignCommentGap + this.commentOffset
             }
         }
     }
