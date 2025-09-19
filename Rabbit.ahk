@@ -359,7 +359,10 @@ ProcessKey(key, mask, this_hotkey) {
             last_is_hide := true
         else
             last_is_hide := false
-        SendText(commit.text)
+        if StrLen(commit.text) >= RabbitConfig.send_by_clipboard_length
+            SendTextByClipboard(commit.text)
+        else
+            SendText(commit.text)
         box.Hide()
         rime.free_commit(commit)
     } else
@@ -529,4 +532,16 @@ UpdateWinAscii(target := false, use_target := false, proc_name := "", by_tray_ic
     }
     UpdateTrayTip(, target)
     UpdateTrayIcon()
+}
+
+; by rawbx (https://github.com/rimeinn/rabbit/issues/13#issuecomment-3072554342)
+SendTextByClipboard(text) {
+    clip_prev := A_Clipboard
+    A_Clipboard := text
+
+    if ClipWait(0.5, 0)
+        Send('+{Insert}') ; or Send('^v')
+
+    ; Restore clipboard
+    SetTimer(() => A_Clipboard := clip_prev, -50)
 }

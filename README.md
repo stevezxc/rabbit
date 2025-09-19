@@ -15,7 +15,7 @@
 
 ### 通过发布页面下载
 
-正式发行版会在 [Release 页面](https://github.com/rimeinn/rabbit/releases) 的 Assets 中，下载最新的 `rabbit-v<版本号>.zip`，解压到一个新建文件夹，运行 `Rabbit.exe` 即可。
+正式发行版会在 [Release](https://github.com/rimeinn/rabbit/releases) 页面的 Assets 中，下载最新的 `rabbit-v<版本号>.zip`，解压到一个新建文件夹，运行 `Rabbit.exe` 即可。
 
 每夜构建版可在 [`latest`](https://github.com/rimeinn/rabbit/releases/tag/latest) 页面下载。
 
@@ -68,7 +68,6 @@ rabbit/
 - [librime-ahk](https://github.com/rimeinn/librime-ahk)
 - [AHK-Direct2D](https://github.com/rawbx/AHK-Direct2D)
 - [OpenCC](https://github.com/BYVoid/OpenCC)
-- ~~[AHKv2-Gdip](https://github.com/buliasz/AHKv2-Gdip)~~
 - [GetCaretPos](https://github.com/Descolada/AHK-v2-libraries)
 - [GetCaretPosEx](https://github.com/Tebayaki/AutoHotkeyScripts/tree/main/lib/GetCaretPosEx)
 - [东风破](https://github.com/rime/plum)
@@ -78,7 +77,6 @@ rabbit/
 
 ## 已知问题
 
-- 候选框图形界面较为简陋，有闪烁等问题
 - 某些情况无法获得输入光标的坐标
 - 桌面版 QQ 的密码输入框无法使用：[QQ密码输入框（防键盘钩子）原理分析](https://blog.csdn.net/muyedongfeng/article/details/49308993)，
 （[页面存档备份](https://web.archive.org/web/20240907052640/https://blog.csdn.net/muyedongfeng/article/details/49308993)，存于互联网档案馆），可右键点击任务栏图标选择禁用/启用玉兔毫，或是在 `rabbit.custom.yaml` 里设置 `suspend_hotkey` 指定快捷键来禁用/启用玉兔毫

@@ -28,6 +28,7 @@ class RabbitConfig {
     static schema_icon := Map()
     static fix_candidate_box := false
     static use_legacy_candidate_box := false
+    static send_by_clipboard_length := 8
 
     static load() {
         global rime, IS_DARK_MODE
@@ -42,6 +43,12 @@ class RabbitConfig {
             if result == 0
                 RabbitConfig.show_tips := false
         }
+
+        if rime.config_test_get_int(config, "send_by_clipboard_length", &result)
+            ; 0: always send by clipboard
+            ; >0: send by clipboard if length >= value
+            ; <0: never send by clipboard (65535 is large enough for candidates)
+            RabbitConfig.send_by_clipboard_length := result >= 0 ? result : 65535
 
         if rime.config_test_get_bool(config, "global_ascii", &result)
             RabbitConfig.global_ascii := !!result

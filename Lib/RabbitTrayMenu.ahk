@@ -19,7 +19,7 @@
 #Include <RabbitCommon>
 #Include <RabbitConfig>
 
-A_IconTip := "玉兔毫"
+A_IconTip := "玉兔毫（维护中）"
 
 global TRAY_SCHEMA_NAME := ""
 global TRAY_ASCII_MODE := 0
