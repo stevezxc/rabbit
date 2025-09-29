@@ -379,7 +379,7 @@ ProcessKey(key, mask, this_hotkey) {
         static prev_show := false
         static prev_x := 4
         static prev_y := 4
-        if context.composition.length > 0 {
+        if (context.composition.length > 0 or context.menu.num_candidates > 0) {
             DetectHiddenWindows True
             local start_menu := WinActive("ahk_class Windows.UI.Core.CoreWindow ahk_exe StartMenuExperienceHost.exe")
                              || WinActive("ahk_class Windows.UI.Core.CoreWindow ahk_exe SearchHost.exe")
