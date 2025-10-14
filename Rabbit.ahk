@@ -99,6 +99,7 @@ RabbitMain(args) {
     }
 
     CleanOldLogs()
+    CleanMisPlacedConfigs()
     RabbitConfig.load()
     if RabbitConfig.use_legacy_candidate_box
         box := LegacyCandidateBox()
