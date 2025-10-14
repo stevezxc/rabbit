@@ -176,6 +176,23 @@ CleanOldLogs() {
     }
 }
 
+CleanMisPlacedConfigs() {
+    shared := RabbitSharedDataPath()
+    user := RabbitUserDataPath()
+
+    if shared == user
+        return
+
+    if FileExist(user . "\default.yaml") {
+        RabbitWarn(Format("renaming unnecessary file {}\default.yaml", user), Format("RabbitCommon.ahk:{}", A_LineNumber))
+        FileMove(user . "\default.yaml", user . "\default.yaml.old", 1)
+    }
+    if FileExist(user . "\rabbit.yaml") {
+        RabbitWarn(Format("renaming unnecessary file {}\rabbit.yaml", user), Format("RabbitCommon.ahk:{}", A_LineNumber))
+        FileMove(user . "\rabbit.yaml", user . "\rabbit.yaml.old", 1)
+    }
+}
+
 RabbitLog(text) {
     try {
         FileAppend(text, "*", "UTF-8")
@@ -192,6 +209,10 @@ RabbitLogLimit(text, label, limit := 1) {
 }
 RabbitError(text, location, limit := -1) {
     msg := Format("E{} {:5} {}] {}`r`n", FormatTime(, "yyyyMMdd HH:mm:ss       "), ProcessExist(), location, text)
+    RabbitLogLimit(msg, location, limit)
+}
+RabbitWarn(text, location, limit := -1) {
+    msg := Format("W{} {:5} {}] {}`r`n", FormatTime(, "yyyyMMdd HH:mm:ss       "), ProcessExist(), location, text)
     RabbitLogLimit(msg, location, limit)
 }
 RabbitInfo(text, location, limit := -1) {
