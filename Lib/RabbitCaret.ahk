@@ -21,7 +21,6 @@
  * with MIT License
  */
 
-#Include <RabbitConfig>
 #Include <GetCaretPosEx\GetCaretPosEx>
 
 /**
@@ -32,34 +31,36 @@
  * @param W Value is set to the width of the caret
  * @param H Value is set to the height of the caret
  */
-GetCaretPos(&caret_x?, &caret_y?, &caret_w?, &caret_h?) {
+RabbitGetCaretPos(&caret_x?, &caret_y?, &caret_w?, &caret_h?, use_caret_hook := false) {
+    local left, top, right, bottom
     caret_x := 0
     caret_y := 0
     caret_w := 0
     caret_h := 0
 
-    if GetCaretPosEx(&left, &top, &right, &bottom, RabbitConfig.use_caret_hook) {
-        if !IsSet(left) || !IsSet(top) || !IsSet(right) || !IsSet(bottom)
-            return GetBuiltInCaretPos(&caret_x, &caret_y, &caret_w, &caret_h)
-
+    if GetCaretPosEx(&left, &top, &right, &bottom, use_caret_hook) {
+        if !IsSet(left) || !IsSet(top) || !IsSet(right) || !IsSet(bottom) {
+            return RabbitGetBuiltInCaretPos(&caret_x, &caret_y, &caret_w, &caret_h)
+        }
         local max_int := 2147483647
         local max_uint := 4294967295
         caret_x := left
         caret_y := top
         caret_w := right - left
         caret_h := bottom - top
-        if caret_x > max_int
+        if caret_x > max_int {
             caret_x := caret_x - max_uint - 1
-        if caret_y > max_int
+        }
+        if caret_y > max_int {
             caret_y := caret_y - max_uint - 1
-
+        }
         return true
     }
 
-    return GetBuiltInCaretPos(&caret_x, &caret_y, &caret_w, &caret_h)
+    return RabbitGetBuiltInCaretPos(&caret_x, &caret_y, &caret_w, &caret_h)
 }
 
-GetBuiltInCaretPos(&x, &y, &w, &h) {
+RabbitGetBuiltInCaretPos(&x, &y, &w, &h) {
     local saved_caret := A_CoordModeCaret
     CoordMode("Caret", "Screen")
     local found := CaretGetPos(&x, &y)

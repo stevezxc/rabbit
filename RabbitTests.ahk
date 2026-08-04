@@ -15,17 +15,24 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
+
 #Requires AutoHotkey v2.0
-#SingleInstance Ignore
+#SingleInstance Off
 
-;@Ahk2Exe-SetInternalName rabbit
-;@Ahk2Exe-SetProductName 玉兔毫
-;@Ahk2Exe-SetOrigFilename Rabbit.ahk
+#Include <RabbitCandidateBoxFactory>
+#Include <RabbitCandidatePresentation>
+#Include <RabbitDeployerApplication>
+#Include <RabbitShutdown>
 
-#Include <RabbitApplication>
-#Include <RabbitCommon>
+#Include tests\RabbitCandidatePresentationTest.ahk
+#Include tests\RabbitCandidateBoxTest.ahk
+#Include tests\RabbitUIStyleSnapshotTest.ahk
+#Include tests\RabbitConfigSnapshotTest.ahk
+#Include tests\RabbitAppContextTest.ahk
+#Include tests\RabbitApplicationTest.ahk
+#Include tests\RabbitInputControllerTest.ahk
+#Include tests\RabbitShutdownTest.ahk
+#Include tests\RabbitDeployerContextTest.ahk
+#Include tests\RabbitDeployerWorkflowTest.ahk
 
-global rabbit_application := RabbitApplication(
-    RimeApi(A_ScriptDir . "\Lib\librime-ahk\rime.dll")
-)
-rabbit_application.Run(A_Args)
+ExitApp()
