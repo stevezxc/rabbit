@@ -51,6 +51,7 @@ RunTest(
 )
 RunTest("legacy dynamic calculated layout", TestLegacyDynamicCalculatedLayout.Bind(candidate_style))
 RunTest("legacy GDI text measurement parity", TestLegacyGdiTextMeasurementParity.Bind(candidate_style))
+RunTest("legacy fake GUI uniform row backgrounds", TestLegacyFakeGuiUniformRowBackgrounds)
 RunTest("legacy pure layout calculation", TestLegacyPureLayoutCalculation.Bind())
 RunTest(
     "modern candidate lifecycle",
@@ -466,6 +467,72 @@ TestLegacyGdiTextMeasurementParity(style) {
     AssertEqual(baseline, CountProcessGuiWindows(), "The native measurement oracle leaked a GUI window.")
 }
 
+TestLegacyFakeGuiUniformRowBackgrounds() {
+    local baseline := CountProcessGuiWindows()
+    local fake_gui := Gui("-DPIScale")
+    try {
+        fake_gui.SetFont("s18 q5", "Microsoft YaHei UI")
+        local label := fake_gui.AddText("x0 y0 Right", "1. ")
+        fake_gui.SetFont("s10 q5", "Times New Roman")
+        local candidate := fake_gui.AddText("x0 y0", "candidate")
+        fake_gui.SetFont("s14 q5", "Microsoft YaHei UI")
+        local comment := fake_gui.AddText("x0 y0", "comment")
+
+        local label_width, label_text_height
+        local candidate_width, candidate_text_height
+        local comment_width, comment_text_height
+        label.GetPos(, , &label_width, &label_text_height)
+        candidate.GetPos(, , &candidate_width, &candidate_text_height)
+        comment.GetPos(, , &comment_width, &comment_text_height)
+        AssertTrue(
+            label_text_height != candidate_text_height
+                || candidate_text_height != comment_text_height,
+            "The fake GUI must provide different natural text heights."
+        )
+
+        local presentation := {candidates: [{comment: "comment"}]}
+        local metrics := {
+            pre: 0,
+            sel: 0,
+            post: 0,
+            rows: [{
+                label: {w: label_width, h: label_text_height},
+                candidate: {w: candidate_width, h: candidate_text_height},
+                comment: {w: comment_width, h: comment_text_height}
+            }]
+        }
+        local layout := RabbitLegacyCandidateLayout.Calculate(presentation, metrics, 6, 4, 0)
+        local row := layout.rows[1]
+        local expected_height := max(
+            label_text_height, candidate_text_height, comment_text_height)
+        AssertEqual(expected_height, row.label.h, "The fake label background did not fill the row.")
+        AssertEqual(
+            expected_height,
+            row.candidate.h,
+            "The fake candidate background did not fill the row."
+        )
+        AssertEqual(expected_height, row.comment.h, "The fake comment background did not fill the row.")
+
+        label.Move(row.label.x, row.label.y, row.label.w, row.label.h)
+        candidate.Move(row.candidate.x, row.candidate.y, row.candidate.w, row.candidate.h)
+        comment.Move(row.comment.x, row.comment.y, row.comment.w, row.comment.h)
+        local label_height, candidate_height, comment_height
+        label.GetPos(, , , &label_height)
+        candidate.GetPos(, , , &candidate_height)
+        comment.GetPos(, , , &comment_height)
+        AssertEqual(expected_height, label_height, "The fake label control retained a shorter background.")
+        AssertEqual(
+            expected_height,
+            candidate_height,
+            "The fake candidate control retained a shorter background."
+        )
+        AssertEqual(expected_height, comment_height, "The fake comment control retained a shorter background.")
+    } finally {
+        fake_gui.Destroy()
+    }
+    AssertEqual(baseline, CountProcessGuiWindows(), "The uniform fake GUI row test leaked a window.")
+}
+
 TestLegacyPureLayoutCalculation() {
     local presentation := {
         candidates: [
@@ -501,7 +568,13 @@ TestLegacyPureLayoutCalculation() {
     AssertEqual(14, layout.rows[1].label.w, "The shared label column width is incorrect.")
     AssertEqual(76, layout.rows[1].candidate.w, "The shared candidate column width is incorrect.")
     AssertEqual(96, layout.rows[1].comment.x, "The comment column position is incorrect.")
+    AssertEqual(20, layout.rows[1].label.h, "The first label did not fill the row height.")
+    AssertEqual(20, layout.rows[1].candidate.h, "The first candidate did not fill the row height.")
+    AssertEqual(20, layout.rows[1].comment.h, "The first comment did not fill the row height.")
     AssertEqual(28, layout.rows[1].label.y, "The first candidate row position is incorrect.")
+    AssertEqual(22, layout.rows[2].label.h, "The second label did not fill the row height.")
+    AssertEqual(22, layout.rows[2].candidate.h, "The second candidate did not fill the row height.")
+    AssertEqual(22, layout.rows[2].comment.h, "The second comment did not fill the row height.")
     AssertEqual(52, layout.rows[2].label.y, "The second candidate row position is incorrect.")
     AssertTrue(layout.has_comment, "The pure layout did not retain its comment column.")
 

@@ -76,15 +76,15 @@ class RabbitLegacyCandidateLayout {
                 row_metrics.label.h, row_metrics.candidate.h, row_metrics.comment.h)
             layout.rows.Push({
                 label: {
-                    x: x, y: y, w: max_label_width, h: row_metrics.label.h
+                    x: x, y: y, w: max_label_width, h: row_height
                 },
                 candidate: {
                     x: x + max_label_width, y: y,
-                    w: max_candidate_width, h: row_metrics.candidate.h
+                    w: max_candidate_width, h: row_height
                 },
                 comment: {
                     x: x + max_label_width + max_candidate_width, y: y,
-                    w: max_comment_width, h: row_metrics.comment.h
+                    w: max_comment_width, h: row_height
                 }
             })
             y += row_height + margin_y
