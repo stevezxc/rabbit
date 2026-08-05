@@ -46,9 +46,12 @@ RunTest("old Windows factory selection", TestOldWindowsFactorySelection.Bind(can
 RunTest("configured legacy factory selection", TestConfiguredLegacyFactorySelection.Bind(candidate_style))
 RunTest("modern factory selection", TestModernFactorySelection.Bind(candidate_style))
 RunTest(
-    "legacy measurement window cleanup",
-    TestLegacyMeasurementWindowCleanup.Bind(candidate_style, candidate_context)
+    "legacy update without measurement windows",
+    TestLegacyUpdateWithoutMeasurementWindow.Bind(candidate_style, candidate_context)
 )
+RunTest("legacy dynamic calculated layout", TestLegacyDynamicCalculatedLayout.Bind(candidate_style))
+RunTest("legacy GDI text measurement parity", TestLegacyGdiTextMeasurementParity.Bind(candidate_style))
+RunTest("legacy pure layout calculation", TestLegacyPureLayoutCalculation.Bind())
 RunTest(
     "modern candidate lifecycle",
     TestBackendLifecycle.Bind("modern", CandidateBox(candidate_style), candidate_context, candidate_style)
@@ -183,7 +186,7 @@ CreateFakeDirect2D(direct2d_count, hwnd) {
     return RabbitFakeDirect2D()
 }
 
-TestLegacyMeasurementWindowCleanup(style, context) {
+TestLegacyUpdateWithoutMeasurementWindow(style, context) {
     local baseline := CountProcessGuiWindows()
     local candidate_box := 0
     local destroy_calls := { value: 0 }
@@ -206,18 +209,37 @@ TestLegacyMeasurementWindowCleanup(style, context) {
             "The initial legacy build must create only its owned candidate window."
         )
 
-        Loop 3 {
+        candidate_box.Build(context, &width, &height)
+        local baseline_gdi_objects := CountProcessGuiResources(0)
+        local baseline_user_objects := CountProcessGuiResources(1)
+        local update_started_at := A_TickCount
+        Loop 20 {
             candidate_box.Build(context, &width, &height)
         }
+        local update_duration := A_TickCount - update_started_at
+        FileAppend(
+            Format("CHARACTERIZATION: legacy 20 calculated updates {}ms`n", update_duration),
+            "*"
+        )
         AssertEqual(
-            3,
+            0,
             destroy_calls.value,
-            "Legacy updates did not explicitly destroy their measurement windows."
+            "Legacy updates created and destroyed temporary measurement windows."
         )
         AssertEqual(
             built_count,
             CountProcessGuiWindows(),
-            "Legacy measurement windows remained after repeated updates."
+            "The process GUI window count changed after repeated legacy updates."
+        )
+        AssertEqual(
+            baseline_gdi_objects,
+            CountProcessGuiResources(0),
+            "Repeated legacy updates leaked GDI objects."
+        )
+        AssertEqual(
+            baseline_user_objects,
+            CountProcessGuiResources(1),
+            "Repeated legacy updates leaked USER objects."
         )
     } finally {
         try {
@@ -237,6 +259,7 @@ TestLegacyMeasurementWindowCleanup(style, context) {
         CountProcessGuiWindows(),
         "Legacy candidate disposal left native GUI windows behind."
     )
+    AssertEqual(1, destroy_calls.value, "Legacy disposal did not destroy exactly one owned window.")
 }
 
 CountLegacyGuiDestruction(destroy_calls, original_destroy, gui, parameters*) {
@@ -255,6 +278,257 @@ CountProcessGuiWindows() {
     }
 }
 
+CountProcessGuiResources(flag) {
+    local process := DllCall("GetCurrentProcess", "Ptr")
+    return DllCall("user32\GetGuiResources", "Ptr", process, "UInt", flag, "UInt")
+}
+
+TestLegacyDynamicCalculatedLayout(style) {
+    local baseline := CountProcessGuiWindows()
+    local candidate_box := LegacyCandidateBox(style)
+    local context := CreateCandidateContext()
+    local width, height, expanded_width, expanded_height
+    local client_width, client_height
+    try {
+        context.composition := {
+            length: 6,
+            preedit: "abcdef",
+            cursor_pos: 99,
+            sel_start: 0,
+            sel_end: 0
+        }
+        context.menu.candidates := []
+        context.menu.num_candidates := 0
+        candidate_box.Build(context, &width, &height)
+        AssertEqual(0, candidate_box.gui.num_candidates, "The composition-only layout created candidate rows.")
+        AssertTrue(HasProp(candidate_box.gui, "pre"), "The composition-only layout omitted preedit text.")
+
+        context.composition.sel_start := 2
+        context.composition.sel_end := 4
+        context.menu.candidates := [
+            { text: "候选一", comment: "注释" },
+            { text: "候选二", comment: "" },
+            { text: "候选三", comment: "更多注释" }
+        ]
+        context.menu.num_candidates := 3
+        candidate_box.Build(context, &width, &height)
+        AssertTrue(HasProp(candidate_box.gui, "sel"), "The selected preedit control was not added lazily.")
+        AssertTrue(HasProp(candidate_box.gui, "post"), "The trailing preedit control was not added lazily.")
+        AssertEqual(3, candidate_box.gui.num_candidates, "The calculated layout omitted new candidate rows.")
+        AssertTrue(candidate_box.gui["L3"].Visible, "The last added candidate row is hidden.")
+        candidate_box.gui.GetClientPos(, , &client_width, &client_height)
+        AssertEqual(width, client_width, "The built client width differs from the calculated width.")
+        AssertEqual(height, client_height, "The built client height differs from the calculated height.")
+        candidate_box.Show(10, 10)
+        candidate_box.gui.GetClientPos(, , &client_width, &client_height)
+        AssertEqual(width, client_width, "The displayed client width differs from the calculated width.")
+        AssertEqual(height, client_height, "The displayed client height differs from the calculated height.")
+        candidate_box.Hide()
+        AssertEqual(
+            baseline + 1,
+            CountProcessGuiWindows(),
+            "A dynamic legacy update created an additional GUI window."
+        )
+
+        context.menu.candidates[1].text := "这是一个用于验证候选框宽度扩展的非常长的候选文本"
+        candidate_box.Build(context, &expanded_width, &expanded_height)
+        AssertTrue(expanded_width > width, "A longer candidate did not expand the calculated layout.")
+        AssertEqual(height, expanded_height, "Changing candidate width unexpectedly changed the layout height.")
+
+        context.menu.candidates := [context.menu.candidates[1]]
+        context.menu.num_candidates := 1
+        candidate_box.Build(context, &width, &height)
+        AssertTrue(!candidate_box.gui["L2"].Visible, "A removed candidate label remained visible.")
+        AssertTrue(!candidate_box.gui["C2"].Visible, "A removed candidate text remained visible.")
+        AssertTrue(!candidate_box.gui["M2"].Visible, "A removed candidate comment remained visible.")
+    } finally {
+        candidate_box.Dispose()
+    }
+    AssertEqual(baseline, CountProcessGuiWindows(), "The dynamic layout test leaked its candidate window.")
+}
+
+TestLegacyGdiTextMeasurementParity(style) {
+    local baseline := CountProcessGuiWindows()
+    local candidate_box := LegacyCandidateBox(style)
+    local native_gui := 0
+    local width, height
+    local cases := [
+        {
+            name: "Chinese text",
+            font_opt: "s14 q5",
+            font_face: "Microsoft YaHei UI",
+            control_opt: "",
+            text: "输入法"
+        },
+        {
+            name: "empty text",
+            font_opt: "s14 q5",
+            font_face: "Microsoft YaHei UI",
+            control_opt: "",
+            text: ""
+        },
+        {
+            name: "tab expansion",
+            font_opt: "s14 q5",
+            font_face: "Microsoft YaHei UI",
+            control_opt: "",
+            text: "A`tB"
+        },
+        {
+            name: "accelerator prefix",
+            font_opt: "s14 q5",
+            font_face: "Segoe UI",
+            control_opt: "Right",
+            text: "A&B"
+        },
+        {
+            name: "multiline text",
+            font_opt: "s12 q5",
+            font_face: "Segoe UI",
+            control_opt: "",
+            text: "line 1`nline 2"
+        },
+        {
+            name: "italic overhang",
+            font_opt: "italic s16 q5",
+            font_face: "Times New Roman",
+            control_opt: "",
+            text: "f"
+        },
+        {
+            name: "bordered text",
+            font_opt: "s14 q5",
+            font_face: "Microsoft YaHei UI",
+            control_opt: "+Border",
+            text: "边框"
+        },
+        {
+            name: "font fallback",
+            font_opt: "s14 q5",
+            font_face: "Rabbit Missing Font",
+            control_opt: "",
+            text: "fallback 字体"
+        },
+        {
+            name: "supplementary character",
+            font_opt: "s14 q5",
+            font_face: "Segoe UI Emoji",
+            control_opt: "",
+            text: "😀"
+        }
+    ]
+    try {
+        candidate_box.Build(CreateCandidateContext(), &width, &height)
+        loop cases.Length {
+            local test_case := cases[A_Index]
+            native_gui := Gui("-DPIScale")
+            try {
+                native_gui.SetFont(test_case.font_opt, test_case.font_face)
+                local native_control := native_gui.AddText(
+                    "x0 y0 " . test_case.control_opt, test_case.text)
+                local native_width, native_height
+                native_control.GetPos(, , &native_width, &native_height)
+
+                local hdc := DllCall("user32\GetDC", "Ptr", native_gui.Hwnd, "Ptr")
+                if !hdc {
+                    throw OSError(A_LastError, "GetDC failed for the native measurement oracle.")
+                }
+                try {
+                    local measured := candidate_box.gui.MeasureText(
+                        hdc, test_case.text, native_control)
+                } finally {
+                    DllCall("user32\ReleaseDC", "Ptr", native_gui.Hwnd, "Ptr", hdc, "Int")
+                }
+                AssertEqual(
+                    native_width,
+                    measured.w,
+                    test_case.name . " width differs from AutoHotkey native autosizing."
+                )
+                AssertEqual(
+                    native_height,
+                    measured.h,
+                    test_case.name . " height differs from AutoHotkey native autosizing."
+                )
+            } finally {
+                native_gui.Destroy()
+                native_gui := 0
+            }
+        }
+    } finally {
+        try {
+            if native_gui {
+                native_gui.Destroy()
+            }
+        } finally {
+            candidate_box.Dispose()
+        }
+    }
+    AssertEqual(baseline, CountProcessGuiWindows(), "The native measurement oracle leaked a GUI window.")
+}
+
+TestLegacyPureLayoutCalculation() {
+    local presentation := {
+        candidates: [
+            { comment: "comment" },
+            { comment: "" }
+        ]
+    }
+    local metrics := {
+        pre: {w: 10, h: 20},
+        sel: {w: 20, h: 18},
+        post: {w: 30, h: 16},
+        rows: [
+            {
+                label: {w: 5, h: 10},
+                candidate: {w: 50, h: 20},
+                comment: {w: 10, h: 12}
+            },
+            {
+                label: {w: 8, h: 11},
+                candidate: {w: 40, h: 22},
+                comment: {w: 8, h: 12}
+            }
+        ]
+    }
+    local layout := RabbitLegacyCandidateLayout.Calculate(presentation, metrics, 6, 4, 100)
+
+    AssertEqual(112, layout.width, "The pure layout calculated the wrong overall width.")
+    AssertEqual(78, layout.height, "The pure layout calculated the wrong overall height.")
+    AssertEqual(6, layout.pre.x, "The preedit start position is incorrect.")
+    AssertEqual(22, layout.sel.x, "The selected preedit position is incorrect.")
+    AssertEqual(48, layout.post.x, "The trailing preedit position is incorrect.")
+    AssertEqual(58, layout.post.w, "The trailing preedit did not absorb the minimum-width expansion.")
+    AssertEqual(14, layout.rows[1].label.w, "The shared label column width is incorrect.")
+    AssertEqual(76, layout.rows[1].candidate.w, "The shared candidate column width is incorrect.")
+    AssertEqual(96, layout.rows[1].comment.x, "The comment column position is incorrect.")
+    AssertEqual(28, layout.rows[1].label.y, "The first candidate row position is incorrect.")
+    AssertEqual(52, layout.rows[2].label.y, "The second candidate row position is incorrect.")
+    AssertTrue(layout.has_comment, "The pure layout did not retain its comment column.")
+
+    presentation := {candidates: []}
+    metrics := {pre: 0, sel: 0, post: 0, rows: []}
+    layout := RabbitLegacyCandidateLayout.Calculate(presentation, metrics, 6, 4, 100)
+    AssertEqual(112, layout.width, "The empty layout did not retain the configured minimum width.")
+    AssertEqual(8, layout.height, "The empty layout did not retain its vertical margins.")
+    AssertTrue(!layout.has_comment, "The empty layout retained a comment column.")
+
+    presentation := {candidates: [{comment: ""}]}
+    metrics := {
+        pre: 0,
+        sel: 0,
+        post: 0,
+        rows: [{
+            label: {w: 5, h: 10},
+            candidate: {w: 20, h: 15},
+            comment: {w: 50, h: 12}
+        }]
+    }
+    layout := RabbitLegacyCandidateLayout.Calculate(presentation, metrics, 6, 4, 0)
+    AssertEqual(49, layout.width, "An empty comment incorrectly widened the candidate layout.")
+    AssertEqual(27, layout.height, "The comment-free row height is incorrect.")
+    AssertTrue(!layout.has_comment, "An empty comment created a visible comment column.")
+}
+
 TestBackendLifecycle(name, candidate_box, context, style) {
     local first_width, first_height, second_width, second_height
     local updated_width, updated_height, restored_width, restored_height
@@ -270,7 +544,12 @@ TestBackendLifecycle(name, candidate_box, context, style) {
         AssertEqual(first_height, second_height, name . " height must be stable across repeated builds.")
         AssertTrue(first_width >= style.min_width, name . " width must honor the configured minimum.")
 
-        local updated_style := style.With(Map("min_width", style.min_width + 40))
+        local updated_style := style.With(Map(
+            "min_width", style.min_width + 40,
+            "font_point", style.font_point + 2,
+            "label_font_point", style.label_font_point + 2,
+            "comment_font_point", style.comment_font_point + 2
+        ))
         candidate_box.UpdateStyle(updated_style)
         candidate_box.UpdateStyle(updated_style)
         candidate_box.Build(context, &updated_width, &updated_height)
@@ -278,6 +557,7 @@ TestBackendLifecycle(name, candidate_box, context, style) {
             updated_width >= updated_style.min_width,
             name . " width must honor an updated style snapshot."
         )
+        AssertTrue(updated_height > first_height, name . " height did not reflect the updated fonts.")
 
         candidate_box.UpdateStyle(style)
         candidate_box.Build(context, &restored_width, &restored_height)

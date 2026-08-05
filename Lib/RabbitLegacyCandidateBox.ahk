@@ -19,6 +19,7 @@
 
 #Include <RabbitCandidateBoxCommon>
 #Include <RabbitCandidatePresentation>
+#Include <RabbitLegacyCandidateLayout>
 #Include <RabbitUIStyleSnapshot>
 
 class LegacyCandidateBox {
@@ -133,7 +134,9 @@ class LegacyCandidateBox {
         if !this.built {
             throw Error("Candidate box must be built before it is shown.")
         }
-        this.gui.Show(Format("AutoSize NA x{} y{}", x, y))
+        this.gui.Show(Format(
+            "NA x{} y{} w{} h{}", x, y, this.gui.max_width, this.gui.max_height))
+        this.gui.RedrawAfterResize()
         this.visible := true
     }
 
@@ -155,182 +158,38 @@ class LegacyCandidateBox {
 
     class BoxGui extends Gui {
         built := false
-        __New(owner, presentation, &pre?, &sel?, &post?) {
-            local w, h, h1, h2, h3
+        __New(owner, presentation) {
             super.__New(, , this)
             this.owner := owner
 
-            local num_candidates := presentation.candidates.Length
-            local hilited_index := presentation.highlighted_index
-            pre := presentation.preedit.before_selection
-            sel := presentation.preedit.selected
-            post := presentation.preedit.after_selection
-
-            this.Opt(Format("-DPIScale -Caption +Owner +AlwaysOnTop {} {} {}", WS_EX_NOACTIVATE, WS_EX_COMPOSITED, WS_EX_LAYERED))
+            this.Opt(Format(
+                "-DPIScale -Caption +Owner +AlwaysOnTop {} {} {}",
+                WS_EX_NOACTIVATE, WS_EX_COMPOSITED, WS_EX_LAYERED))
             this.BackColor := this.owner.back_color
             this.SetFont(this.owner.base_font_opt, this.owner.style.font_face)
             this.MarginX := this.owner.style.margin_x
             this.MarginY := this.owner.style.margin_y
-            this.num_candidates := num_candidates
+            this.num_candidates := 0
             this.has_comment := false
-
-            ; build preedit
             this.max_width := 0
-            this.preedit_height := 0
-            local head_position := Format(
-                "x{} y{} section {}", this.MarginX, this.MarginY, this.owner.border)
-            local position := head_position
-            if pre {
-                this.pre := this.AddText(position, pre)
-                this.pre.Opt(this.owner.base_opt)
-                position := Format("x+{} ys {}", this.MarginX, this.owner.border)
-                this.pre.GetPos(, , &w, &h)
-                this.preedit_height := max(this.preedit_height, h)
-                this.pre_width := w
-                this.max_width += (w + this.MarginX)
-            }
-            if sel {
-                this.sel := this.AddText(position, sel)
-                this.sel.Opt(this.owner.hilited_opt)
-                position := Format("x+{} ys {}", this.MarginX, this.owner.border)
-                this.sel.GetPos(, , &w, &h)
-                this.preedit_height := max(this.preedit_height, h)
-                this.sel_width := w
-                this.max_width += (w + this.MarginX)
-            }
-            if post {
-                this.post := this.AddText(position, post)
-                this.post.Opt(this.owner.base_opt)
-                this.post.GetPos(, , &w, &h)
-                this.preedit_height := max(this.preedit_height, h)
-                this.post_width := w
-                this.max_width += w
-            }
+            this.max_height := 0
 
-            ; build candidates
-            this.max_label_width := 0
-            this.max_candidate_width := 0
-            this.max_comment_width := 0
-            this.candidate_height := 0
-            loop num_candidates {
-                position := Format("xs y+{} section {}", this.MarginY, this.owner.border)
-                local candidate_presentation := presentation.candidates[A_Index]
-                this.SetFont(this.owner.label_font_opt, this.owner.style.label_font_face)
-                local label := this.AddText(
-                    Format("Right {} vL{}", position, A_Index), candidate_presentation.label)
-                label.GetPos(, , &w, &h1)
-                this.max_label_width := max(this.max_label_width, w + this.MarginX)
-
-                position := Format("x+{} ys {}", this.MarginX, this.owner.border)
-                this.SetFont(this.owner.base_font_opt, this.owner.style.font_face)
-                local candidate := this.AddText(
-                    Format("{} vC{}", position, A_Index), candidate_presentation.text)
-                candidate.GetPos(, , &w, &h2)
-                this.max_candidate_width := max(this.max_candidate_width, w + this.MarginX)
-
-                if (comment_text := candidate_presentation.comment) {
-                    this.has_comment := true
-                }
-                this.SetFont(this.owner.comment_font_opt, this.owner.style.comment_font_face)
-                local comment := this.AddText(Format("{} vM{}", position, A_Index), comment_text)
-                comment.GetPos(, , &w, &h3)
-                comment.Opt(Format("c{:x}", this.owner.comment_text_color))
-                comment.Visible := this.has_comment
-                this.max_comment_width := max(this.max_comment_width, w)
-                this.candidate_height := max(this.candidate_height, h1, h2, h3)
-
-                if A_Index == hilited_index {
-                    label.Opt(this.owner.hilited_label_opt)
-                    candidate.Opt(this.owner.hilited_candidate_opt)
-                    comment.Opt(this.owner.hilited_comment_opt)
-                } else {
-                    label.Opt(this.owner.label_opt)
-                    candidate.Opt(this.owner.candidate_opt)
-                    comment.Opt(this.owner.comment_opt)
-                }
-            }
-
-            ; adjust width height
-            local list_width := this.max_label_width + this.max_candidate_width + this.has_comment * this.max_comment_width
-            local box_width := max(this.owner.style.min_width, list_width)
-            if box_width > this.max_width && HasProp(this, "post") && this.post {
-                this.post.Move(, , this.post_width + box_width - this.max_width)
-            }
-            this.max_width := max(box_width, this.max_width)
-            if this.max_width > list_width {
-                this.max_candidate_width += this.max_width - list_width
-                loop num_candidates {
-                    this["C" . A_Index].Move(, , this.max_candidate_width)
-                }
-            }
-            local y := 2 * this.MarginY + this.preedit_height
-            loop num_candidates {
-                local x := this.MarginX
-                this["L" . A_Index].Move(x, y, this.max_label_width)
-                this["L" . A_Index].GetPos(, , , &h)
-                local max_h := h
-                x += this.max_label_width
-                this["C" . A_Index].Move(x, y, this.max_candidate_width)
-                this["C" . A_Index].GetPos(, , , &h)
-                max_h := max(max_h, h)
-                x += this.max_candidate_width
-                this["M" . A_Index].Move(x, y, this.max_comment_width)
-                this["M" . A_Index].GetPos(, , , &h)
-                max_h := max(max_h, h)
-                y += (max_h + this.MarginY)
-            }
-            this.max_height := y
-            this.max_width += (2 * this.MarginX)
-
+            this.Update(presentation)
             this.built := true
         }
 
         Update(presentation) {
-            local x, y, w, h, width, height
-            local fake_gui := LegacyCandidateBox.BoxGui(this.owner, presentation, &pre, &sel, &post)
             local num_candidates := presentation.candidates.Length
             local hilited_index := presentation.highlighted_index
-            this.SetFont(this.owner.base_font_opt, this.owner.style.font_face)
-            this.num_candidates := max(this.num_candidates, num_candidates)
-            this.max_width := fake_gui.max_width
-            this.max_height := fake_gui.max_height
+            local layout
+            this.EnsureControls(presentation)
+            this.ApplyControlFonts()
+            layout := this.CalculateLayout(presentation)
 
-            ; reset preedit
-            if pre {
-                if !HasProp(this, "pre") || !this.pre {
-                    this.pre := this.AddText(, pre)
-                }
-                this.pre.Value := fake_gui.pre.Value
-                fake_gui.pre.GetPos(&x, &y, &w, &h)
-                this.pre.Move(x, y, w, h)
-            }
-            if HasProp(this, "pre") && this.pre {
-                this.pre.Visible := !!pre
-            }
-            if sel {
-                if !HasProp(this, "sel") || !this.sel {
-                    this.sel := this.AddText(, sel)
-                }
-                this.sel.Value := fake_gui.sel.Value
-                fake_gui.sel.GetPos(&x, &y, &w, &h)
-                this.sel.Move(x, y, w, h)
-            }
-            if HasProp(this, "sel") && this.sel {
-                this.sel.Visible := !!sel
-            }
-            if post {
-                if !HasProp(this, "post") || !this.post {
-                    this.post := this.AddText(, post)
-                }
-                this.post.Value := fake_gui.post.Value
-                fake_gui.post.GetPos(&x, &y, &w, &h)
-                this.post.Move(x, y, w, h)
-            }
-            if HasProp(this, "post") && this.post {
-                this.post.Visible := !!post
+            this.ApplyPreeditLayout("pre", presentation.preedit.before_selection, layout.pre)
+            this.ApplyPreeditLayout("sel", presentation.preedit.selected, layout.sel)
+            this.ApplyPreeditLayout("post", presentation.preedit.after_selection, layout.post)
 
-            ; reset candidates
-            }
             loop this.num_candidates {
                 if A_Index > num_candidates {
                     this["L" . A_Index].Visible := false
@@ -338,36 +197,23 @@ class LegacyCandidateBox {
                     this["M" . A_Index].Visible := false
                     continue
                 }
-                local fake_label := fake_gui["L" . A_Index]
-                local fake_candidate := fake_gui["C" . A_Index]
-                local fake_comment := fake_gui["M" . A_Index]
-                this.SetFont(this.owner.label_font_opt, this.owner.style.label_font_face)
-                try {
-                    local label := this["L" . A_Index]
-                } catch {
-                    local label := this.AddText(Format("vL{}", A_Index), fake_label.Value)
-                }
-                this.SetFont(this.owner.base_font_opt, this.owner.style.font_face)
-                try {
-                    local candidate := this["C" . A_Index]
-                } catch {
-                    local candidate := this.AddText(Format("vC{}", A_Index), fake_candidate.Value)
-                }
-                this.SetFont(this.owner.comment_font_opt, this.owner.style.comment_font_face)
-                try {
-                    local comment := this["M" . A_Index]
-                } catch {
-                    local comment := this.AddText(Format("vM{}", A_Index), fake_comment.Value)
-                }
-                label.Value := fake_label.Value
-                fake_label.GetPos(&x, &y, &w, &h)
-                label.Move(x, y, w, h)
-                candidate.Value := fake_candidate.Value
-                fake_candidate.GetPos(&x, &y, &w, &h)
-                candidate.Move(x, y, w, h)
-                comment.Value := fake_comment.Value
-                fake_comment.GetPos(&x, &y, &w, &h)
-                comment.Move(x, y, w, h)
+                local row_presentation := presentation.candidates[A_Index]
+                local row_layout := layout.rows[A_Index]
+                local label := this["L" . A_Index]
+                local candidate := this["C" . A_Index]
+                local comment := this["M" . A_Index]
+                label.Value := row_presentation.label
+                label.Move(
+                    row_layout.label.x, row_layout.label.y,
+                    row_layout.label.w, row_layout.label.h)
+                candidate.Value := row_presentation.text
+                candidate.Move(
+                    row_layout.candidate.x, row_layout.candidate.y,
+                    row_layout.candidate.w, row_layout.candidate.h)
+                comment.Value := row_presentation.comment
+                comment.Move(
+                    row_layout.comment.x, row_layout.comment.y,
+                    row_layout.comment.w, row_layout.comment.h)
 
                 if A_Index == hilited_index {
                     label.Opt(this.owner.hilited_label_opt)
@@ -378,15 +224,192 @@ class LegacyCandidateBox {
                     candidate.Opt(this.owner.candidate_opt)
                     comment.Opt(this.owner.comment_opt)
                 }
-                local visible := (A_Index <= num_candidates)
-                label.Visible := visible
-                candidate.Visible := visible
-                comment.Visible := (fake_gui.has_comment && visible)
+                label.Visible := true
+                candidate.Visible := true
+                comment.Visible := layout.has_comment
             }
 
-            fake_gui.GetPos(, , &width, &height)
-            this.Move(, , width, height)
-            fake_gui.Destroy()
+            this.has_comment := layout.has_comment
+            this.max_width := layout.width
+            this.max_height := layout.height
+            this.Move(, , this.max_width, this.max_height)
+        }
+
+        EnsureControls(presentation) {
+            local num_candidates := presentation.candidates.Length
+            local pre := presentation.preedit.before_selection
+            local sel := presentation.preedit.selected
+            local post := presentation.preedit.after_selection
+            if pre && (!HasProp(this, "pre") || !this.pre) {
+                this.SetFont(this.owner.base_font_opt, this.owner.style.font_face)
+                this.pre := this.AddText(Format("x0 y0 {}", this.owner.border), pre)
+            }
+            if sel && (!HasProp(this, "sel") || !this.sel) {
+                this.SetFont(this.owner.base_font_opt, this.owner.style.font_face)
+                this.sel := this.AddText(Format("x0 y0 {}", this.owner.border), sel)
+            }
+            if post && (!HasProp(this, "post") || !this.post) {
+                this.SetFont(this.owner.base_font_opt, this.owner.style.font_face)
+                this.post := this.AddText(Format("x0 y0 {}", this.owner.border), post)
+            }
+
+            if num_candidates <= this.num_candidates {
+                return
+            }
+            loop num_candidates - this.num_candidates {
+                local index := this.num_candidates + A_Index
+                local row := presentation.candidates[index]
+                this.SetFont(this.owner.label_font_opt, this.owner.style.label_font_face)
+                this.AddText(
+                    Format("x0 y0 Right {} vL{}", this.owner.border, index), row.label)
+                this.SetFont(this.owner.base_font_opt, this.owner.style.font_face)
+                this.AddText(Format("x0 y0 {} vC{}", this.owner.border, index), row.text)
+                this.SetFont(this.owner.comment_font_opt, this.owner.style.comment_font_face)
+                this.AddText(Format("x0 y0 {} vM{}", this.owner.border, index), row.comment)
+            }
+            this.num_candidates := num_candidates
+        }
+
+        ApplyControlFonts() {
+            if HasProp(this, "pre") && this.pre {
+                this.pre.SetFont(this.owner.base_font_opt, this.owner.style.font_face)
+            }
+            if HasProp(this, "sel") && this.sel {
+                this.sel.SetFont(this.owner.base_font_opt, this.owner.style.font_face)
+            }
+            if HasProp(this, "post") && this.post {
+                this.post.SetFont(this.owner.base_font_opt, this.owner.style.font_face)
+            }
+            loop this.num_candidates {
+                this["L" . A_Index].SetFont(
+                    this.owner.label_font_opt, this.owner.style.label_font_face)
+                this["C" . A_Index].SetFont(
+                    this.owner.base_font_opt, this.owner.style.font_face)
+                this["M" . A_Index].SetFont(
+                    this.owner.comment_font_opt, this.owner.style.comment_font_face)
+            }
+        }
+
+        ApplyPreeditLayout(name, text, layout) {
+            if !text {
+                if HasProp(this, name) && this.%name% {
+                    this.%name%.Visible := false
+                }
+                return
+            }
+            local control := this.%name%
+            control.Value := text
+            control.Move(layout.x, layout.y, layout.w, layout.h)
+            control.Opt(name == "sel" ? this.owner.hilited_opt : this.owner.base_opt)
+            control.Visible := true
+        }
+
+        CalculateLayout(presentation) {
+            local hdc := DllCall("user32\GetDC", "Ptr", this.Hwnd, "Ptr")
+            if !hdc {
+                throw OSError(A_LastError, "GetDC failed.")
+            }
+            try {
+                return this.CalculateLayoutWithDC(presentation, hdc)
+            } finally {
+                DllCall("user32\ReleaseDC", "Ptr", this.Hwnd, "Ptr", hdc, "Int")
+            }
+        }
+
+        CalculateLayoutWithDC(presentation, hdc) {
+            local pre := presentation.preedit.before_selection
+            local sel := presentation.preedit.selected
+            local post := presentation.preedit.after_selection
+            local metrics := {pre: 0, sel: 0, post: 0, rows: []}
+
+            if pre {
+                metrics.pre := this.MeasureText(hdc, pre, this.pre)
+            }
+            if sel {
+                metrics.sel := this.MeasureText(hdc, sel, this.sel)
+            }
+            if post {
+                metrics.post := this.MeasureText(hdc, post, this.post)
+            }
+
+            loop presentation.candidates.Length {
+                local row := presentation.candidates[A_Index]
+                local label_metrics := this.MeasureText(hdc, row.label, this["L" . A_Index])
+                local candidate_metrics := this.MeasureText(hdc, row.text, this["C" . A_Index])
+                local comment_metrics := this.MeasureText(hdc, row.comment, this["M" . A_Index])
+                metrics.rows.Push({
+                    label: label_metrics,
+                    candidate: candidate_metrics,
+                    comment: comment_metrics
+                })
+            }
+
+            return RabbitLegacyCandidateLayout.Calculate(
+                presentation, metrics, this.MarginX, this.MarginY, this.owner.style.min_width)
+        }
+
+        MeasureText(hdc, text, control) {
+            ; Match AutoHotkey's Text autosizing so the calculated rectangles fit the native controls.
+            static WM_GETFONT := 0x31
+            static DT_EXPANDTABS := 0x40
+            static DT_CALCRECT := 0x400
+            static GWL_STYLE := -16
+            static WS_BORDER := 0x800000
+            static SM_CXBORDER := 5
+            static SM_CYBORDER := 6
+            local hfont := DllCall(
+                "user32\SendMessage", "Ptr", control.Hwnd,
+                "UInt", WM_GETFONT, "Ptr", 0, "Ptr", 0, "Ptr")
+            if !hfont {
+                throw Error("The candidate control does not have a font.")
+            }
+            local previous_font := DllCall("gdi32\SelectObject", "Ptr", hdc, "Ptr", hfont, "Ptr")
+            try {
+                local display_text := text ? text : "H"
+                local rect := Buffer(16, 0)
+                local height := DllCall(
+                    "user32\DrawTextW", "Ptr", hdc, "Str", display_text, "Int", -1,
+                    "Ptr", rect, "UInt", DT_CALCRECT | DT_EXPANDTABS, "Int")
+                local width := NumGet(rect, 8, "Int") - NumGet(rect, 0, "Int")
+
+                if text {
+                    local last_character := Ord(SubStr(text, -1))
+                    local abc := Buffer(12, 0)
+                    if DllCall(
+                        "gdi32\GetCharABCWidthsW", "Ptr", hdc,
+                        "UInt", last_character, "UInt", last_character, "Ptr", abc, "Int") {
+                        local overhang := NumGet(abc, 8, "Int")
+                        if overhang < 0 {
+                            width -= overhang
+                        }
+                    }
+                }
+
+                local style := DllCall(
+                    "user32\GetWindowLong", "Ptr", control.Hwnd, "Int", GWL_STYLE, "UInt")
+                if style & WS_BORDER {
+                    width += 2 * DllCall(
+                        "user32\GetSystemMetrics", "Int", SM_CXBORDER, "Int")
+                    height += 2 * DllCall(
+                        "user32\GetSystemMetrics", "Int", SM_CYBORDER, "Int")
+                }
+                return {w: width, h: height}
+            } finally {
+                DllCall("gdi32\SelectObject", "Ptr", hdc, "Ptr", previous_font, "Ptr")
+            }
+        }
+
+        RedrawAfterResize() {
+            ; A visible layered/composited GUI can retain black pixels after it grows. Erase the
+            ; parent background and repaint every child once the final window size is in place.
+            static RDW_INVALIDATE := 0x0001
+            static RDW_ERASE := 0x0004
+            static RDW_ALLCHILDREN := 0x0080
+            static RDW_UPDATENOW := 0x0100
+            local flags := RDW_INVALIDATE | RDW_ERASE | RDW_ALLCHILDREN | RDW_UPDATENOW
+            DllCall(
+                "user32\RedrawWindow", "Ptr", this.Hwnd,
+                "Ptr", 0, "Ptr", 0, "UInt", flags, "Int")
         }
     }
 }
