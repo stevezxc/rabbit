@@ -20,6 +20,8 @@
 #Include <RabbitInput>
 
 RunTest("input hotkey ownership", TestInputHotkeyOwnership.Bind())
+RunTest("configured input hotkey selection", TestConfiguredInputHotkeySelection.Bind())
+RunTest("release fallback replays key-up", TestReleaseFallbackReplaysKeyUp.Bind())
 RunTest("latest candidate update ordering", TestLatestCandidateUpdateOrdering.Bind())
 RunTest("focus change clears composition", TestFocusChangeClearsComposition.Bind())
 
@@ -28,16 +30,141 @@ TestInputHotkeyOwnership() {
         {},
         1,
         {},
-        RabbitConfigSnapshot(),
+        RabbitConfigSnapshot(Map("suspend_hotkey", "Control+Alt+Space")),
         {},
         {}
     )
     input.RegisterHotKeys()
+    AssertTrue(
+        ArrayContains(input.registered_hotkeys, "$^!Space"),
+        "The suspend hotkey was not registered before its options were updated."
+    )
     AssertTrue(input.registered_hotkeys.Length > 0, "The input owner did not record its hotkeys.")
     input.Dispose()
     input.Dispose()
     Persistent(false)
     AssertEqual(0, input.registered_hotkeys.Length, "The input owner did not release its hotkeys.")
+}
+
+TestConfiguredInputHotkeySelection() {
+    local hotkeys := RabbitInputHotkeys()
+    hotkeys.AddBinding("Control+space", "key_binder")
+    hotkeys.AddBinding("Control+Shift+percent", "key_binder")
+    hotkeys.AddBinding("Release+Shift+Tab", "switcher")
+    hotkeys.AddBinding("Alt+v", "key_binder")
+    hotkeys.AddBinding("Shift_L", "ascii")
+    hotkeys.AddBinding("Shift_L", "key_binder")
+    hotkeys.AddBinding("Control_L", "key_binder")
+    hotkeys.AddBinding("Super+space", "key_binder")
+    hotkeys.AddBinding("Control+UnknownKey", "key_binder")
+    hotkeys.Finalize()
+
+    local registrations := hotkeys.GetRegistrations()
+    local control_space := FindInputRegistration(registrations, "^Space")
+    local percent := FindInputRegistration(registrations, "^+%")
+    local release_tab := FindInputRegistration(registrations, "+Tab Up")
+    local alt_v := FindInputRegistration(registrations, "!v")
+    local shift := FindInputRegistration(registrations, "LShift")
+    local control := FindInputRegistration(registrations, "LCtrl")
+
+    AssertTrue(control_space, "The configured Control+space binding was not collected.")
+    AssertTrue(percent, "The configured Control+Shift+percent binding was not collected.")
+    AssertEqual(
+        KeyDef.mask["Ctrl"],
+        control_space.mask,
+        "The configured Control+space mask was not preserved."
+    )
+    AssertTrue(release_tab, "The configured Release+Shift+Tab binding was not collected.")
+    AssertTrue(
+        release_tab.mask & KeyDef.mask["Up"],
+        "A Release binding was not marked as a key-up event."
+    )
+    AssertTrue(alt_v, "A configured Alt combination was not collected.")
+    AssertTrue(shift && !shift.pass_through, "A key_binder standalone modifier was not protected from unconditional pass-through.")
+    AssertTrue(
+        FindInputRegistration(registrations, "LShift Up"),
+        "An ASCII standalone modifier did not retain its key-up event."
+    )
+    AssertTrue(control && !control.pass_through, "A key_binder Control modifier was not protected from unconditional pass-through.")
+    AssertTrue(
+        !FindInputRegistration(registrations, "#Space"),
+        "An unsupported Win combination was collected."
+    )
+    AssertTrue(
+        !FindInputRegistration(registrations, "^UnknownKey"),
+        "An unsupported key was collected."
+    )
+
+    local ascii_only := RabbitInputHotkeys()
+    ascii_only.AddBinding("Shift_L", "ascii")
+    ascii_only.Finalize()
+    local ascii_shift := FindInputRegistration(ascii_only.GetRegistrations(), "LShift")
+    AssertTrue(ascii_shift && ascii_shift.pass_through, "An ASCII-only standalone modifier was not marked for immediate pass-through.")
+
+    local input := RabbitInputController(
+        {},
+        1,
+        {},
+        RabbitConfigSnapshot(Map("input_hotkeys", ascii_only)),
+        {},
+        {}
+    )
+    input.RegisterHotKeys()
+    AssertTrue(
+        ArrayContains(input.registered_hotkeys, "$~LShift"),
+        "An ASCII-only standalone modifier was not registered for immediate pass-through."
+    )
+    AssertTrue(
+        ArrayContains(input.registered_hotkeys, "$~LShift Up"),
+        "An ASCII-only standalone modifier key-up was not registered for immediate pass-through."
+    )
+    input.Dispose()
+}
+
+FindInputRegistration(registrations, hotkey) {
+    local registration
+    for registration in registrations {
+        if registration.hotkey = hotkey {
+            return registration
+        }
+    }
+    return 0
+}
+
+TestReleaseFallbackReplaysKeyUp() {
+    local input := RabbitInputController(
+        {},
+        1,
+        {},
+        RabbitConfigSnapshot(),
+        {},
+        {}
+    )
+    AssertEqual(
+        "{Blind}{Tab Up}",
+        input.BuildFallbackInput("Tab", KeyDef.mask["Up"]),
+        "An unprocessed Release binding was replayed as a key press."
+    )
+    AssertEqual(
+        "{Blind}{Space Up}",
+        input.BuildFallbackInput("Space", KeyDef.mask["Up"]),
+        "An unprocessed Space release was not replayed as a key-up event."
+    )
+    AssertEqual(
+        "+{A}",
+        input.BuildFallbackInput("A", KeyDef.mask["Shift"]),
+        "A normal shifted key fallback changed unexpectedly."
+    )
+}
+
+ArrayContains(array, value) {
+    local item
+    for item in array {
+        if item = value {
+            return true
+        }
+    }
+    return false
 }
 
 TestLatestCandidateUpdateOrdering() {

@@ -18,6 +18,7 @@
 
 #Include <RabbitCommon>
 #Include <RabbitConfigSnapshot>
+#Include <RabbitInputHotkeys>
 #Include <RabbitUIStyle>
 #Include <RabbitUIStyleSnapshot>
 
@@ -26,12 +27,13 @@ class RabbitConfigLoader {
         local config, result, iter, proc_name, schema_list, schema, icon, icon_path
         local values := Map(
             "preset_process_ascii", Map(),
-            "schema_icon", Map()
+            "schema_icon", Map(),
+            "input_hotkeys", RabbitInputHotkeys()
         )
         local ui_style := RabbitUIStyleSnapshot()
         local dark_mode := false
 
-        if !rime_api || !(config := rime_api.config_open("rabbit")) {
+        if !rime_api {
             return {
                 config: RabbitConfigSnapshot(values),
                 style: ui_style,
@@ -39,48 +41,55 @@ class RabbitConfigLoader {
             }
         }
 
-        values["suspend_hotkey"] := rime_api.config_get_string(config, "suspend_hotkey")
-        if rime_api.config_test_get_bool(config, "show_tips", &result) {
-            values["show_tips"] := !!result
-        }
-        if rime_api.config_test_get_int(config, "show_tips_time", &result) {
-            values["show_tips_time"] := Abs(result)
-            if result == 0 {
-                values["show_tips"] := false
+        if (config := rime_api.config_open("rabbit")) {
+            values["suspend_hotkey"] := rime_api.config_get_string(config, "suspend_hotkey")
+            if rime_api.config_test_get_bool(config, "show_tips", &result) {
+                values["show_tips"] := !!result
             }
-        }
-        if rime_api.config_test_get_int(config, "send_by_clipboard_length", &result) {
-            ; 0: always send by clipboard
-            ; >0: send by clipboard if length >= value
-            ; <0: never send by clipboard (65535 is large enough for candidates)
-            values["send_by_clipboard_length"] := result >= 0 ? result : 65535
-        }
-        if rime_api.config_test_get_bool(config, "global_ascii", &result) {
-            values["global_ascii"] := !!result
-        }
-        if (iter := rime_api.config_begin_map(config, "app_options")) {
-            while rime_api.config_next(iter) {
-                proc_name := StrLower(iter.key)
-                if rime_api.config_test_get_bool(
-                    config, "app_options/" . proc_name . "/ascii_mode", &result) {
-                    values["preset_process_ascii"][proc_name] := !!result
+            if rime_api.config_test_get_int(config, "show_tips_time", &result) {
+                values["show_tips_time"] := Abs(result)
+                if result == 0 {
+                    values["show_tips"] := false
                 }
             }
-            rime_api.config_end(iter)
-        }
-        if rime_api.config_test_get_bool(config, "fix_candidate_box", &result) {
-            values["fix_candidate_box"] := !!result
-        }
-        if rime_api.config_test_get_bool(config, "use_legacy_candidate_box", &result) {
-            values["use_legacy_candidate_box"] := !!result
-        }
-        if rime_api.config_test_get_bool(config, "use_caret_hook", &result) {
-            values["use_caret_hook"] := !!result
+            if rime_api.config_test_get_int(config, "send_by_clipboard_length", &result) {
+                ; 0: always send by clipboard
+                ; >0: send by clipboard if length >= value
+                ; <0: never send by clipboard (65535 is large enough for candidates)
+                values["send_by_clipboard_length"] := result >= 0 ? result : 65535
+            }
+            if rime_api.config_test_get_bool(config, "global_ascii", &result) {
+                values["global_ascii"] := !!result
+            }
+            if (iter := rime_api.config_begin_map(config, "app_options")) {
+                while rime_api.config_next(iter) {
+                    proc_name := StrLower(iter.key)
+                    if rime_api.config_test_get_bool(
+                        config, "app_options/" . proc_name . "/ascii_mode", &result) {
+                        values["preset_process_ascii"][proc_name] := !!result
+                    }
+                }
+                rime_api.config_end(iter)
+            }
+            if rime_api.config_test_get_bool(config, "fix_candidate_box", &result) {
+                values["fix_candidate_box"] := !!result
+            }
+            if rime_api.config_test_get_bool(config, "use_legacy_candidate_box", &result) {
+                values["use_legacy_candidate_box"] := !!result
+            }
+            if rime_api.config_test_get_bool(config, "use_caret_hook", &result) {
+                values["use_caret_hook"] := !!result
+            }
+
+            dark_mode := RabbitIsUserDarkMode()
+            ui_style := RabbitUIStyleSnapshot.FromConfig(rime_api, config, dark_mode)
+            rime_api.config_close(config)
         }
 
-        dark_mode := RabbitIsUserDarkMode()
-        ui_style := RabbitUIStyleSnapshot.FromConfig(rime_api, config, dark_mode)
-        rime_api.config_close(config)
+        if (config := rime_api.config_open("default")) {
+            values["input_hotkeys"].AddConfig(rime_api, config)
+            rime_api.config_close(config)
+        }
 
         if (schema_list := rime_api.get_schema_list()) {
             Loop schema_list.size {
@@ -88,6 +97,7 @@ class RabbitConfigLoader {
                 if !(schema := rime_api.schema_open(item.schema_id)) {
                     continue
                 }
+                values["input_hotkeys"].AddConfig(rime_api, schema)
                 if rime_api.config_test_get_string(schema, "schema/icon", &icon) {
                     icon_path := RabbitUserDataPath() . "\" . LTrim(icon, "\")
                     if !FileExist(icon_path) {
@@ -101,6 +111,8 @@ class RabbitConfigLoader {
             }
             rime_api.free_schema_list(schema_list)
         }
+
+        values["input_hotkeys"].Finalize()
 
         return {
             config: RabbitConfigSnapshot(values),

@@ -18,6 +18,7 @@
 
 #Include <RabbitCommon>
 #Include <RabbitKeyTable>
+#Include <RabbitInputHotkeys>
 #Include <RabbitCaret>
 #Include <RabbitMonitors>
 #Include <RabbitConfigSnapshot>
@@ -44,103 +45,73 @@ class RabbitInputController {
         this.focus_timer_callback := this.CheckCompositionFocus.Bind(this)
         this.focus_timer_running := false
         this.registered_hotkeys := []
+        this.registered_hotkey_names := Map()
     }
 
     RegisterHotKeys() {
-        local modifier, _, key, k
+        local key, registration, k
         local shift := KeyDef.mask["Shift"]
         local ctrl := KeyDef.mask["Ctrl"]
         local alt := KeyDef.mask["Alt"]
-        local win := KeyDef.mask["Win"]
         local up := KeyDef.mask["Up"]
 
-        ; Modifiers
-        for modifier, _ in KeyDef.modifier_code {
-            if modifier == "LWin" || modifier == "RWin" || modifier == "LAlt" || modifier == "RAlt" {
-                ; Win and Alt modifiers are intentionally unsupported for now.
-                continue
+        this.RegisterSuspendHotKey(shift, ctrl, alt, up)
+
+        ; Register only modifier-containing keys found in the effective default
+        ; and enabled-schema configurations. This snapshot is intentionally
+        ; static: schema changes do not repeatedly install and remove hotkeys.
+        if this.config.input_hotkeys {
+            for registration in this.config.input_hotkeys.GetRegistrations() {
+                this.RegisterHotKey(
+                    (registration.pass_through ? "$~" : "$") . registration.hotkey,
+                    this.ProcessKey.Bind(
+                        this,
+                        registration.key,
+                        registration.mask,
+                        registration.pass_through
+                    ),
+                    "S0"
+                )
             }
-            local mask := KeyDef.mask[modifier]
-            this.RegisterHotKey("$" . modifier, this.ProcessKey.Bind(this, modifier, mask), "S0")
-            this.RegisterHotKey(
-                "$" . modifier . " Up",
-                this.ProcessKey.Bind(this, modifier, mask | up),
-                "S0"
-            )
         }
 
-        ; Plain
+        ; Plain keys are always needed for ordinary text input.
         Loop 2 {
             local key_map := A_Index = 1 ? KeyDef.plain_keycode : KeyDef.other_keycode
             for key, _ in key_map {
-                this.RegisterHotKey("$" . key, this.ProcessKey.Bind(this, key, 0), "S0")
-                ; Specify left/right to prevent fallback to modifier down/up hotkeys.
-                this.RegisterHotKey("$<^" . key, this.ProcessKey.Bind(this, key, ctrl), "S0")
-                ; Alt plus a single key is intentionally unsupported for now.
-                ; if key != "Tab" {
-                ;     Hotkey("$<!" . key, ProcessKey.Bind(key, alt), "S0")
-                ;     Hotkey("$>!" . key, ProcessKey.Bind(key, alt), "S0")
-                ; }
-                this.RegisterHotKey("$>^" . key, this.ProcessKey.Bind(this, key, ctrl), "S0")
                 this.RegisterHotKey(
-                    "$^!" . key,
-                    this.ProcessKey.Bind(this, key, ctrl | alt),
+                    "$" . key,
+                    this.ProcessKey.Bind(this, key, 0, false),
                     "S0"
                 )
-                this.RegisterHotKey(
-                    "$!#" . key,
-                    this.ProcessKey.Bind(this, key, alt | win),
-                    "S0"
-                )
-
-                ; Win-key combinations are intentionally unsupported for now.
-                ; Hotkey("$<#" . key, ProcessKey.Bind(key, win), "S0")
-                ; Hotkey("$>#" . key, ProcessKey.Bind(key, win), "S0")
-                ; Hotkey("$^#" . key, ProcessKey.Bind(key, ctrl | win), "S0")
-                ; Hotkey("$^!#" . key, ProcessKey.Bind(key, ctrl | alt | win), "S0")
             }
         }
 
-        ; Shifted
-        Loop 2 {
-            local key_map := A_Index = 1 ? KeyDef.shifted_keycode : KeyDef.other_keycode
-            for key, _ in key_map {
-                this.RegisterHotKey("$<+" . key, this.ProcessKey.Bind(this, key, shift), "S0")
-                this.RegisterHotKey("$>+" . key, this.ProcessKey.Bind(this, key, shift), "S0")
-                this.RegisterHotKey(
-                    "$+^" . key,
-                    this.ProcessKey.Bind(this, key, shift | ctrl),
-                    "S0"
-                )
-                if !key == "Tab" {
-                    this.RegisterHotKey(
-                        "$+!" . key,
-                        this.ProcessKey.Bind(this, key, shift | alt),
-                        "S0"
-                    )
-                }
-                this.RegisterHotKey(
-                    "$+^!" . key,
-                    this.ProcessKey.Bind(this, key, shift | ctrl | alt),
-                    "S0"
-                )
-
-                ; Win-key combinations are intentionally unsupported for now.
-                ; Hotkey("$+#" . key, ProcessKey.Bind(key, shift | win), "S0")
-                ; Hotkey("$+^#" . key, ProcessKey.Bind(key, shift | ctrl | win), "S0")
-                ; Hotkey("$+!#" . key, ProcessKey.Bind(key, shift | alt | win), "S0")
-                ; Hotkey("$+^!#" . key, ProcessKey.Bind(key, shift | ctrl | alt | win), "S0")
-            }
+        ; Shifted letters and symbols must remain registered even when no
+        ; schema binding mentions them: they are required for normal text input.
+        for key, _ in KeyDef.shifted_keycode {
+            this.RegisterHotKey(
+                "$<+" . key,
+                this.ProcessKey.Bind(this, key, shift, false),
+                "S0"
+            )
+            this.RegisterHotKey(
+                "$>+" . key,
+                this.ProcessKey.Bind(this, key, shift, false),
+                "S0"
+            )
         }
 
         ; Special handling
         this.RegisterHotKey(
             "$Space Up",
-            this.ProcessKey.Bind(this, "Space", up),
+            this.ProcessKey.Bind(this, "Space", up, false),
             "S0"
         )
 
-        ; Read the hotkey to suspend / resume Rabbit
+    }
+
+    RegisterSuspendHotKey(shift, ctrl, alt, up) {
         if !this.config.suspend_hotkey {
             return
         }
@@ -148,6 +119,7 @@ class RabbitInputController {
         local mask := 0
         local target_key := ""
         local num_modifiers := 0
+        local k
         for k in keys {
             if k = "Control" {
                 num_modifiers += !(mask & ctrl)
@@ -163,41 +135,52 @@ class RabbitInputController {
             }
         }
 
+        local callback, m
         if target_key {
             if KeyDef.rime_to_ahk.Has(target_key) {
                 target_key := KeyDef.rime_to_ahk[target_key]
             }
+            callback := this.ProcessKey.Bind(this, target_key, mask, false)
             if num_modifiers = 1 {
                 if mask & ctrl {
-                    Hotkey("$<^" . target_key, , "S")
-                    Hotkey("$>^" . target_key, , "S")
+                    this.RegisterHotKey("$<^" . target_key, callback, "S", true)
+                    this.RegisterHotKey("$>^" . target_key, callback, "S", true)
                     this.suspend_hotkey_mask := mask
                     this.suspend_hotkey := target_key
                 }
             } else if num_modifiers > 1 {
-                local m := "$" . (mask & shift ? "+" : "") .
-                                    (mask & ctrl ? "^" : "") .
-                                    (mask & alt ? "!" : "")
-                Hotkey(m . target_key, , "S")
+                m := "$" . (mask & shift ? "+" : "") .
+                                (mask & ctrl ? "^" : "") .
+                                (mask & alt ? "!" : "")
+                this.RegisterHotKey(m . target_key, callback, "S", true)
                 this.suspend_hotkey_mask := mask
                 this.suspend_hotkey := target_key
             }
-        } else if keys.Length == 1 {
-            if keys[1] = "Shift" {
-                ; A standalone Shift key is intentionally unsupported for now.
-                Hotkey("$LShift", , "S")
-                Hotkey("$RShift", , "S")
-                Hotkey("$LShift Up", , "S")
-                Hotkey("$RShift Up", , "S")
-                this.suspend_hotkey_mask := mask | up
-                this.suspend_hotkey := "Shift"
-            }
+        } else if keys.Length == 1 && keys[1] = "Shift" {
+            ; A standalone Shift key is intentionally unsupported for now.
+            callback := this.ProcessKey.Bind(this, "LShift", shift, false)
+            this.RegisterHotKey("$LShift", callback, "S", true)
+            callback := this.ProcessKey.Bind(this, "RShift", shift, false)
+            this.RegisterHotKey("$RShift", callback, "S", true)
+            callback := this.ProcessKey.Bind(this, "LShift", shift | up, false)
+            this.RegisterHotKey("$LShift Up", callback, "S", true)
+            callback := this.ProcessKey.Bind(this, "RShift", shift | up, false)
+            this.RegisterHotKey("$RShift Up", callback, "S", true)
+            this.suspend_hotkey_mask := shift | up
+            this.suspend_hotkey := "Shift"
         }
     }
 
-    RegisterHotKey(name, callback, options) {
+    RegisterHotKey(name, callback, options, update_existing := false) {
+        if this.registered_hotkey_names.Has(name) {
+            if update_existing {
+                Hotkey(name, callback, options)
+            }
+            return
+        }
         Hotkey(name, callback, options)
         this.registered_hotkeys.Push(name)
+        this.registered_hotkey_names[name] := true
     }
 
     StartFocusMonitor() {
@@ -222,9 +205,10 @@ class RabbitInputController {
             }
         }
         this.registered_hotkeys := []
+        this.registered_hotkey_names := Map()
     }
 
-    ProcessKey(key, mask, this_hotkey) {
+    ProcessKey(key, mask, pass_through := false, this_hotkey := "") {
         local check_key, check_code, caps, status, processed, commit, context
         local candidate_revision, foreground_hwnd, hide_candidate := false
         local code := 0
@@ -347,23 +331,38 @@ class RabbitInputController {
             this.rime.free_context(context)
         }
 
-        if !processed {
-            local shift := (mask & KeyDef.mask["Shift"]) ? "+" : ""
-            local ctrl := (mask & KeyDef.mask["Ctrl"]) ? "^" : ""
-            local alt := (mask & KeyDef.mask["Alt"]) ? "!" : ""
-            local win := (mask & KeyDef.mask["Win"]) ? "#" : ""
-
-            local is_up := mask & KeyDef.mask["Up"]
+        if !processed && !pass_through {
             local has_modifier := mask & (
                 KeyDef.mask["Shift"] | KeyDef.mask["Ctrl"] | KeyDef.mask["Alt"] | KeyDef.mask["Win"]
             )
+            local fallback := this.BuildFallbackInput(key, mask)
 
             if key == "Space" && !has_modifier {
-                Send("{Blind}{" . key . (is_up ? " Up" : " Down") . "}")
+                Send(fallback)
             } else {
-                SendInput(shift . ctrl . alt . win . "{" . key . "}")
+                SendInput(fallback)
             }
         }
+    }
+
+    BuildFallbackInput(key, mask) {
+        local is_up := mask & KeyDef.mask["Up"]
+        if is_up {
+            ; A Release binding must replay the physical key-up event, not a
+            ; new key press. Blind preserves the modifier state already held
+            ; by the target application.
+            return "{Blind}{" . key . " Up}"
+        }
+        local shift := (mask & KeyDef.mask["Shift"]) ? "+" : ""
+        local ctrl := (mask & KeyDef.mask["Ctrl"]) ? "^" : ""
+        local alt := (mask & KeyDef.mask["Alt"]) ? "!" : ""
+        local win := (mask & KeyDef.mask["Win"]) ? "#" : ""
+        if key == "Space" && !(mask & (
+            KeyDef.mask["Shift"] | KeyDef.mask["Ctrl"] | KeyDef.mask["Alt"] | KeyDef.mask["Win"]
+        )) {
+            return "{Blind}{" . key . " Down}"
+        }
+        return shift . ctrl . alt . win . "{" . key . "}"
     }
 
     GetForegroundWindow() {

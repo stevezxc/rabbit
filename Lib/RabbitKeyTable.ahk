@@ -234,7 +234,7 @@ class KeyDef {
         "quotedbl",     "`"",
         "numbersign",   "#",
         "dollar",       "$",
-        "persent",      "%",
+        "percent",      "%",
         "ampersand",    "&",
         "parenleft",    "(",
         "parenright",   ")",
