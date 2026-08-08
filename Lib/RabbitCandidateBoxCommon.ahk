@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2023 - 2026 Xuesong Peng <pengxuesong.cn@gmail.com>
+ * Copyright (c) 2005 Tim <zerxmega@foxmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,17 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#Requires AutoHotkey v2.0
-#SingleInstance Ignore
 
-;@Ahk2Exe-SetInternalName rabbit
-;@Ahk2Exe-SetProductName 玉兔毫
-;@Ahk2Exe-SetOrigFilename Rabbit.ahk
-
-#Include <RabbitApplication>
-#Include <RabbitCommon>
-
-global rabbit_application := RabbitApplication(
-    RimeApi(A_ScriptDir . "\Lib\librime-ahk\rime.dll")
-)
-rabbit_application.Run(A_Args)
+; https://learn.microsoft.com/windows/win32/winmsg/extended-window-styles
+global WS_EX_NOACTIVATE := "+E0x8000000"
+global WS_EX_COMPOSITED := "+E0x02000000"
+global WS_EX_LAYERED    := "+E0x00080000"

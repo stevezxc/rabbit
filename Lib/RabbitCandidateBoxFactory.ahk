@@ -15,17 +15,20 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#Requires AutoHotkey v2.0
-#SingleInstance Ignore
 
-;@Ahk2Exe-SetInternalName rabbit
-;@Ahk2Exe-SetProductName 玉兔毫
-;@Ahk2Exe-SetOrigFilename Rabbit.ahk
+#Include <RabbitCandidateBox>
+#Include <RabbitLegacyCandidateBox>
 
-#Include <RabbitApplication>
-#Include <RabbitCommon>
+class RabbitCandidateBoxFactory {
+    __New(style, modern_constructor := CandidateBox, legacy_constructor := LegacyCandidateBox) {
+        this.style := style
+        this.modern_constructor := modern_constructor
+        this.legacy_constructor := legacy_constructor
+    }
 
-global rabbit_application := RabbitApplication(
-    RimeApi(A_ScriptDir . "\Lib\librime-ahk\rime.dll")
-)
-rabbit_application.Run(A_Args)
+    Create(use_legacy_candidate_box) {
+        local constructor
+        constructor := use_legacy_candidate_box ? this.legacy_constructor : this.modern_constructor
+        return constructor.Call(this.style)
+    }
+}

@@ -15,17 +15,29 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#Requires AutoHotkey v2.0
-#SingleInstance Ignore
 
-;@Ahk2Exe-SetInternalName rabbit
-;@Ahk2Exe-SetProductName 玉兔毫
-;@Ahk2Exe-SetOrigFilename Rabbit.ahk
-
-#Include <RabbitApplication>
-#Include <RabbitCommon>
-
-global rabbit_application := RabbitApplication(
-    RimeApi(A_ScriptDir . "\Lib\librime-ahk\rime.dll")
-)
-rabbit_application.Run(A_Args)
+RabbitShutdownRuntime(candidate_box, rime_api, session, mutex_instance, rime_initialized := true) {
+    try {
+        if candidate_box && HasMethod(candidate_box, "Dispose") {
+            candidate_box.Dispose()
+        }
+    } finally {
+        try {
+            if session {
+                try {
+                    rime_api.destroy_session(session)
+                } finally {
+                    if rime_initialized {
+                        rime_api.finalize()
+                    }
+                }
+            } else if rime_initialized {
+                rime_api.finalize()
+            }
+        } finally {
+            if mutex_instance {
+                mutex_instance.Close()
+            }
+        }
+    }
+}

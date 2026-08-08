@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 - 2026 Xuesong Peng <pengxuesong.cn@gmail.com>
+ * Copyright (c) 2026 Xuesong Peng <pengxuesong.cn@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,17 +15,29 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#Requires AutoHotkey v2.0
-#SingleInstance Ignore
 
-;@Ahk2Exe-SetInternalName rabbit
-;@Ahk2Exe-SetProductName 玉兔毫
-;@Ahk2Exe-SetOrigFilename Rabbit.ahk
+RunTest(name, test) {
+    test.Call()
+    FileAppend("PASS: " . name . "`n", "*")
+}
 
-#Include <RabbitApplication>
-#Include <RabbitCommon>
+AssertTrue(condition, message) {
+    if !condition {
+        throw Error(message)
+    }
+}
 
-global rabbit_application := RabbitApplication(
-    RimeApi(A_ScriptDir . "\Lib\librime-ahk\rime.dll")
-)
-rabbit_application.Run(A_Args)
+AssertEqual(expected, actual, message) {
+    if expected != actual {
+        throw Error(Format("{} Expected: {}. Actual: {}.", message, expected, actual))
+    }
+}
+
+AssertThrows(callback, message) {
+    try {
+        callback.Call()
+    } catch {
+        return
+    }
+    throw Error(message)
+}
