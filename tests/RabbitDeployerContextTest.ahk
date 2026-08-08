@@ -16,6 +16,7 @@
  *
  */
 
+#Include TestCommon.ahk
 #Include <RabbitDeployerContext>
 #Include <RabbitUIStyleSettings>
 

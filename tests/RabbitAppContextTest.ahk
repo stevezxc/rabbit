@@ -16,6 +16,7 @@
  *
  */
 
+#Include TestCommon.ahk
 #Include <RabbitAppContext>
 
 RunTest("application context disposal order", TestAppContextDisposalOrder.Bind())

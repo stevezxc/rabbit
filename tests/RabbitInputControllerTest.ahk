@@ -16,6 +16,7 @@
  *
  */
 
+#Include TestCommon.ahk
 #Include <RabbitConfigSnapshot>
 #Include <RabbitInput>
 

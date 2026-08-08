@@ -16,6 +16,8 @@
  *
  */
 
+#Include TestCommon.ahk
+
 RunTest("shutdown cleanup after candidate disposal failure", TestShutdownCleanupAfterDisposalFailure.Bind())
 
 TestShutdownCleanupAfterDisposalFailure() {

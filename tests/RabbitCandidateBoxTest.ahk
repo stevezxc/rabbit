@@ -16,6 +16,8 @@
  *
  */
 
+#Include TestCommon.ahk
+
 candidate_context := CreateCandidateContext()
 candidate_style := RabbitUIStyleSnapshot()
 
@@ -95,11 +97,6 @@ CreateCandidateContext() {
         },
         select_labels: Map(0, "", 1, "", 2, "")
     }
-}
-
-RunTest(name, test) {
-    test.Call()
-    FileAppend("PASS: " . name . "`n", "*")
 }
 
 TestOldWindowsFactorySelection(style) {
@@ -682,27 +679,6 @@ TestPartialConstructionCleanup(style) {
 
 ThrowDirect2D(hwnd) {
     throw Error("Injected Direct2D construction failure.")
-}
-
-AssertTrue(condition, message) {
-    if !condition {
-        throw Error(message)
-    }
-}
-
-AssertEqual(expected, actual, message) {
-    if expected != actual {
-        throw Error(Format("{} Expected: {}. Actual: {}.", message, expected, actual))
-    }
-}
-
-AssertThrows(callback, message) {
-    try {
-        callback.Call()
-    } catch {
-        return
-    }
-    throw Error(message)
 }
 
 class RabbitFakeDirect2D {

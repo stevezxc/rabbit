@@ -16,6 +16,7 @@
  *
  */
 
+#Include TestCommon.ahk
 #Include <RabbitConfigSnapshot>
 
 RunTest("config snapshot collection boundaries", TestConfigSnapshotCollections.Bind())

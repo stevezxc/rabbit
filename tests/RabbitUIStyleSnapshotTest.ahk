@@ -16,6 +16,7 @@
  *
  */
 
+#Include TestCommon.ahk
 #Include <RabbitUIStyleSnapshot>
 
 RunTest("style snapshot copies constructor values", TestStyleSnapshotCopiesValues.Bind())
